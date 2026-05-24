@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daemons — Deploy and Monetize your AI Agents</title>
+    <meta name="description" content="Deploy an army of tactical AI-bots to manage your digital and physical lives. Go beyond automation to intelligent swarms of cooperating agents.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:           #060609;
+            --bg-card:      rgba(255,255,255,0.025);
+            --bg-card-h:    rgba(255,255,255,0.05);
+            --border:       rgba(255,255,255,0.07);
+            --border-h:     rgba(255,255,255,0.15);
+            --purple:       #a855f7;
+            --purple-d:     rgba(168,85,247,0.45);
+            --purple-glow:  rgba(168,85,247,0.18);
+            --cyan:         #22d3ee;
+            --cyan-d:       rgba(34,211,238,0.45);
+            --cyan-glow:    rgba(34,211,238,0.18);
+            --text:         #e2e8f0;
+            --text-dim:     #94a3b8;
+            --text-muted:   #475569;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            line-height: 1.65;
+            overflow-x: hidden;
+        }
+
+        /* ── CANVAS ─────────────────────────────────────────────── */
+        #cv {
+            position: fixed; inset: 0;
+            z-index: 0; opacity: 0.45;
+            pointer-events: none;
+        }
+
+        /* ── NAV ────────────────────────────────────────────────── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 200;
+            padding: 1.25rem 2.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid transparent;
+            transition: background .3s, border-color .3s, backdrop-filter .3s;
+        }
+        nav.s {
+            background: rgba(6,6,9,0.82);
+            backdrop-filter: blur(18px);
+            border-bottom-color: var(--border);
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem; font-weight: 700;
+            letter-spacing: -.03em; color: #fff; text-decoration: none;
+        }
+        .logo em { color: var(--cyan); font-style: normal; }
+        .nav-btn {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .85rem; font-weight: 600;
+            color: var(--bg); background: var(--cyan);
+            padding: .5rem 1.3rem; border-radius: 99px;
+            text-decoration: none;
+            transition: background .2s, transform .2s, box-shadow .2s;
+        }
+        .nav-btn:hover {
+            background: #fff; transform: translateY(-1px);
+            box-shadow: 0 0 22px var(--cyan-glow);
+        }
+
+        /* ── HERO ───────────────────────────────────────────────── */
+        #hero {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; align-items: center;
+            padding: 9rem 2.5rem 5rem;
+            overflow: hidden;
+        }
+        .hero-wrap {
+            max-width: 1200px; margin: 0 auto; width: 100%;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 4rem; align-items: center;
+        }
+
+        .hero-eyebrow {
+            font-family: 'Space Mono', monospace;
+            font-size: .68rem; letter-spacing: .22em;
+            text-transform: uppercase; color: var(--purple);
+            margin-bottom: .85rem;
+            animation: glitch 5s infinite;
+        }
+        @keyframes glitch {
+            0%,92%,100%  { opacity: 1; transform: none; }
+            93%           { opacity: .3; transform: translateX(2px); }
+            94%           { opacity: 1; transform: none; }
+            95%           { opacity: .15; transform: translateX(-2px); }
+            96%           { opacity: 1; transform: none; }
+        }
+
+        .hero-tag {
+            display: inline-flex; align-items: center; gap: .5rem;
+            font-family: 'Space Mono', monospace;
+            font-size: .7rem; letter-spacing: .15em;
+            text-transform: uppercase; color: var(--cyan);
+            margin-bottom: 1.5rem;
+        }
+        .hero-tag::before {
+            content: '';
+            display: block; width: 1.8rem; height: 1px;
+            background: var(--cyan);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.6rem, 5vw, 4.6rem);
+            font-weight: 700; line-height: 1.04;
+            letter-spacing: -.035em; color: #fff;
+            margin-bottom: 1.5rem;
+        }
+        h1 .p { color: var(--purple); }
+        h1 .c { color: var(--cyan); }
+
+        .hero-desc {
+            font-size: 1.05rem; color: var(--text-dim);
+            line-height: 1.72; max-width: 480px;
+            margin-bottom: 2.5rem;
+        }
+
+        .hero-actions { display: flex; gap: .875rem; flex-wrap: wrap; }
+
+        .btn-grad {
+            display: inline-flex; align-items: center; gap: .4rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .9rem; font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, var(--purple), #6d28d9);
+            padding: .8rem 1.8rem; border-radius: 99px;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .btn-grad:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 32px rgba(168,85,247,.4);
+        }
+        .btn-outline {
+            display: inline-flex; align-items: center; gap: .4rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .9rem; font-weight: 500;
+            color: var(--text-dim); background: transparent;
+            padding: .8rem 1.5rem; border-radius: 99px;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            transition: color .2s, border-color .2s, background .2s;
+        }
+        .btn-outline:hover {
+            color: #fff; border-color: var(--border-h);
+            background: rgba(255,255,255,.04);
+        }
+
+        /* Image panel */
+        .hero-img-panel {
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .hero-img-ring {
+            position: relative;
+            width: 100%; max-width: 490px;
+        }
+        /* gradient border */
+        .hero-img-ring::before {
+            content: '';
+            position: absolute; inset: -2px;
+            background: linear-gradient(135deg, var(--purple), transparent 50%, var(--cyan));
+            border-radius: 22px; z-index: 0; opacity: .7;
+        }
+        /* outer glow */
+        .hero-img-ring::after {
+            content: '';
+            position: absolute; inset: -60px;
+            background: radial-gradient(ellipse at 50% 50%,
+                rgba(168,85,247,.12) 0%,
+                rgba(34,211,238,.07) 50%,
+                transparent 75%);
+            border-radius: 50%; z-index: -1;
+        }
+        .hero-img-ring img {
+            display: block; position: relative; z-index: 1;
+            width: 100%; height: auto;
+            border-radius: 20px;
+            filter: saturate(1.08) contrast(1.04);
+        }
+
+        /* floating chips */
+        .chip {
+            position: absolute;
+            font-family: 'Space Mono', monospace;
+            font-size: .6rem; letter-spacing: .1em;
+            color: var(--cyan); opacity: .75;
+            background: rgba(34,211,238,.07);
+            border: 1px solid rgba(34,211,238,.2);
+            padding: .3rem .65rem; border-radius: 99px;
+            animation: bob 3.5s ease-in-out infinite;
+            z-index: 2;
+        }
+        .chip:nth-child(2) { top: 8%;  right: -6%; animation-delay: 0s; }
+        .chip:nth-child(3) { bottom: 12%; left: -7%; animation-delay: 1.2s; color: var(--purple); border-color: rgba(168,85,247,.25); background: rgba(168,85,247,.07); }
+        .chip:nth-child(4) { top: 52%; right: -10%; animation-delay: 2.1s; }
+
+        @keyframes bob {
+            0%,100% { transform: translateY(0); }
+            50%      { transform: translateY(-8px); }
+        }
+
+        /* ── SECTION COMMONS ────────────────────────────────────── */
+        section { position: relative; z-index: 1; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2.5rem; }
+
+        .sec-label {
+            display: inline-flex; align-items: center; gap: .65rem;
+            font-family: 'Space Mono', monospace;
+            font-size: .68rem; letter-spacing: .2em;
+            text-transform: uppercase; color: var(--purple);
+            margin-bottom: 1rem;
+        }
+        .sec-label::after {
+            content: '';
+            display: block; width: 64px; height: 1px;
+            background: linear-gradient(to right, var(--purple-d), transparent);
+        }
+        .sec-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.9rem, 3vw, 2.8rem);
+            font-weight: 700; letter-spacing: -.025em;
+            color: #fff; line-height: 1.18;
+            margin-bottom: 3.5rem;
+        }
+
+        /* ── FEATURES ───────────────────────────────────────────── */
+        #features { padding: 9rem 0; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px; padding: 2.5rem;
+            position: relative; overflow: hidden;
+            transition: background .35s, border-color .35s, transform .35s, box-shadow .35s,
+                        opacity .6s ease, translate .6s ease;
+            opacity: 0; translate: 0 28px;
+        }
+        .card.in { opacity: 1; translate: 0 0; }
+
+        /* top shine */
+        .card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(to right, transparent, var(--cyan-d), transparent);
+            opacity: 0; transition: opacity .35s;
+        }
+        .card:hover { background: var(--bg-card-h); transform: translateY(-5px); }
+        .card:hover::before { opacity: 1; }
+        .card:nth-child(odd):hover  { border-color: rgba(34,211,238,.22);  box-shadow: 0 20px 56px rgba(0,0,0,.5), 0 0 40px var(--cyan-glow); }
+        .card:nth-child(even):hover { border-color: rgba(168,85,247,.22); box-shadow: 0 20px 56px rgba(0,0,0,.5), 0 0 40px var(--purple-glow); }
+
+        /* span last card full width */
+        .card:last-child { grid-column: 1 / -1; }
+
+        .card-num {
+            font-family: 'Space Mono', monospace;
+            font-size: .65rem; letter-spacing: .12em;
+            color: var(--text-muted); margin-bottom: 1.4rem;
+        }
+        .card-icon {
+            font-size: 1.7rem; line-height: 1;
+            margin-bottom: 1.2rem; display: block;
+        }
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15rem; font-weight: 600;
+            color: #fff; margin-bottom: .8rem;
+            letter-spacing: -.01em;
+        }
+        .card-body {
+            font-size: .925rem; color: var(--text-dim); line-height: 1.72;
+        }
+        .card:last-child .card-body { max-width: 620px; }
+
+        /* ── SIGNUP ─────────────────────────────────────────────── */
+        #signup {
+            padding: 9rem 0; text-align: center;
+            isolation: isolate;
+        }
+        #signup::before {
+            content: '';
+            position: absolute; left: 50%; top: 50%;
+            translate: -50% -50%;
+            width: 700px; height: 350px;
+            background: radial-gradient(ellipse, rgba(168,85,247,.07), transparent 70%);
+            z-index: -1; pointer-events: none;
+        }
+        .signup-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.8rem, 3vw, 2.6rem);
+            font-weight: 700; letter-spacing: -.025em;
+            color: #fff; margin-bottom: .6rem;
+        }
+        .signup-sub {
+            font-size: .975rem; color: var(--text-dim);
+            margin-bottom: 2.5rem;
+        }
+        .form {
+            display: flex; gap: .75rem; flex-wrap: wrap;
+            max-width: 490px; margin: 0 auto;
+            justify-content: center;
+        }
+        .form input {
+            flex: 1; min-width: 240px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border); border-radius: 99px;
+            padding: .875rem 1.5rem;
+            font-family: 'Inter', sans-serif; font-size: .9rem; color: #fff;
+            outline: none;
+            transition: border-color .3s, background .3s, box-shadow .3s;
+        }
+        .form input::placeholder { color: var(--text-muted); }
+        .form input:focus {
+            border-color: var(--purple-d);
+            background: rgba(168,85,247,.05);
+            box-shadow: 0 0 0 3px rgba(168,85,247,.1);
+        }
+        .form button {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .875rem; font-weight: 600; color: #fff;
+            background: linear-gradient(135deg, var(--purple), #6d28d9);
+            padding: .875rem 1.75rem; border-radius: 99px;
+            border: none; cursor: pointer; white-space: nowrap;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(168,85,247,.45);
+        }
+        .form button:disabled {
+            background: linear-gradient(135deg,#10b981,#059669);
+            transform: none; box-shadow: none; cursor: default;
+        }
+
+        /* ── BLOG ───────────────────────────────────────────────── */
+        #blog { padding: 3rem 0 9rem; }
+        .blog-row {
+            display: flex; align-items: center;
+            justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+        }
+        .blog-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: .67rem; letter-spacing: .2em;
+            text-transform: uppercase; color: var(--cyan);
+            margin-bottom: .4rem;
+        }
+        .blog-hed {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem; font-weight: 600; color: #fff;
+        }
+        .blog-post {
+            display: inline-flex; align-items: center; gap: .75rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .9rem; font-weight: 500; color: var(--text-dim);
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 1rem 1.5rem; border-radius: 14px;
+            text-decoration: none;
+            transition: color .25s, border-color .25s, background .25s, transform .25s;
+        }
+        .blog-post:hover {
+            color: #fff; border-color: rgba(34,211,238,.25);
+            background: var(--bg-card-h); transform: translateX(5px);
+        }
+        .blog-date {
+            font-family: 'Space Mono', monospace;
+            font-size: .67rem; color: var(--cyan);
+        }
+        .blog-arr { transition: transform .2s; }
+        .blog-post:hover .blog-arr { transform: translateX(4px); }
+
+        /* ── FOOTER ─────────────────────────────────────────────── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 1.75rem 2.5rem;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+        }
+        .footer-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .95rem; font-weight: 700;
+            color: var(--text-muted); text-decoration: none;
+            letter-spacing: -.02em;
+        }
+        .footer-logo em { color: var(--cyan-d); font-style: normal; }
+        .footer-copy {
+            font-family: 'Space Mono', monospace;
+            font-size: .67rem; color: var(--text-muted);
+        }
+
+        /* ── DIVIDER ────────────────────────────────────────────── */
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+            margin: 0 2.5rem;
+        }
+
+        /* ── FADE REVEAL ────────────────────────────────────────── */
+        .reveal {
+            opacity: 0; translate: 0 18px;
+            transition: opacity .7s ease, translate .7s ease;
+        }
+        .reveal.in { opacity: 1; translate: 0 0; }
+
+        /* ── RESPONSIVE ─────────────────────────────────────────── */
+        @media (max-width: 820px) {
+            nav { padding: 1rem 1.5rem; }
+            #hero { padding: 7.5rem 1.5rem 4rem; }
+            .hero-wrap { grid-template-columns: 1fr; gap: 3rem; }
+            .hero-img-panel { order: -1; }
+            .hero-img-ring { max-width: 320px; margin: 0 auto; }
+            .grid { grid-template-columns: 1fr; }
+            .card:last-child { grid-column: auto; }
+            #features, #signup, #blog { padding-top: 5.5rem; padding-bottom: 5.5rem; }
+            .blog-row { flex-direction: column; align-items: flex-start; }
+            footer { padding: 1.5rem; }
+            .container { padding: 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<!-- ── NAV ── -->
+<nav id="nav">
+    <a href="#" class="logo">Daemons<em>.</em></a>
+    <a href="#signup" class="nav-btn">Join Waitlist</a>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+    <div class="hero-wrap">
+        <div>
+            <div class="hero-eyebrow">◈ Something is coming.</div>
+            <div class="hero-tag">AI Agents unleashed</div>
+            <h1>Deploy and<br><span class="p">Monetize</span><br>your <span class="c">AI Agents</span></h1>
+            <p class="hero-desc">Deploy an army of tactical AI-bots to manage your digital and physical lives. Go beyond automation to intelligent swarms of cooperating agents.</p>
+            <div class="hero-actions">
+                <a href="#signup" class="btn-grad">Get Early Access →</a>
+                <a href="#features" class="btn-outline">Explore features</a>
+            </div>
+        </div>
+        <div class="hero-img-panel">
+            <div class="hero-img-ring">
+                <img src="hero.jpg" alt="Daemons AI Agents Platform" />
+                <span class="chip">DAEMON_SWARM v0.9</span>
+                <span class="chip">AGENTS: ACTIVE ●</span>
+                <span class="chip">NET: CONNECTED</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+    <div class="container">
+        <div class="sec-label reveal">Capabilities</div>
+        <h2 class="sec-title reveal" style="transition-delay:.1s">Built for the age<br>of autonomous agents</h2>
+        <div class="grid">
+            <div class="card">
+                <div class="card-num">01</div>
+                <span class="card-icon">⚙</span>
+                <h3 class="card-title">Autonomous Bots</h3>
+                <p class="card-body">Daemons offers a #nocode platform for design and deployment of autonomous AI-bots. These are activated by a variety of real-world triggers, and can run in proactive mode with preset prime directives.</p>
+            </div>
+            <div class="card">
+                <div class="card-num">02</div>
+                <span class="card-icon">◈</span>
+                <h3 class="card-title">Swarm bot collaborations</h3>
+                <p class="card-body">Daemons plan and cooperate with other Daemons, creating societies of collaborating agents working together to optimize results.</p>
+            </div>
+            <div class="card">
+                <div class="card-num">03</div>
+                <span class="card-icon">⬡</span>
+                <h3 class="card-title">Authenticated Agents</h3>
+                <p class="card-body">Daemons are real-world agents that operate on behalf of their owners and users. Daemons can buy, sell, trade, share, invite, and respond to a variety of real-world events.</p>
+            </div>
+            <div class="card">
+                <div class="card-num">04</div>
+                <span class="card-icon">◎</span>
+                <h3 class="card-title">AI Agents for the multiverse</h3>
+                <p class="card-body">Daemons can work across end-points be they websites, in-game elements, metaverse services, apps, email, texts, and other channels of experience.</p>
+            </div>
+            <div class="card">
+                <div class="card-num">05</div>
+                <span class="card-icon">∞</span>
+                <h3 class="card-title">Artificial Life</h3>
+                <p class="card-body">Daemons can be the basis for complex life simulations, enabling developers to plug into the universal karmic loop. Be as real as you like, Daemons earn real money from acting in the real world. Reach out to get started. 🤖</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr>
+
+<!-- ── SIGNUP ── -->
+<section id="signup">
+    <div class="container">
+        <p class="sec-label reveal" style="justify-content:center;margin-bottom:.75rem">Stay in the loop</p>
+        <h2 class="signup-title reveal" style="transition-delay:.1s">Signup for updates</h2>
+        <p class="signup-sub reveal" style="transition-delay:.2s">Be the first to know when Daemons launches.</p>
+        <form class="form reveal" style="transition-delay:.3s" onsubmit="onSignup(event)">
+            <input type="email" placeholder="you@example.com" required />
+            <button type="submit" id="sub-btn">Subscribe →</button>
+        </form>
+    </div>
+</section>
+
+<hr>
+
+<!-- ── BLOG ── -->
+<section id="blog">
+    <div class="container">
+        <div class="blog-row reveal">
+            <div>
+                <div class="blog-lbl">Daemons Speak</div>
+                <div class="blog-hed">Read more on our blog</div>
+            </div>
+            <a href="#" class="blog-post">
+                <span class="blog-date">4/27</span>
+                <span>Why Daemons?</span>
+                <span class="blog-arr">→</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+    <a href="#" class="footer-logo">Daemons<em>.</em></a>
+    <span class="footer-copy">© 2025 Daemons. All rights reserved.</span>
+</footer>
+
+<script>
+/* ── PARTICLE NETWORK ─────────────────────────────────────── */
+(function () {
+    const cv = document.getElementById('cv');
+    const cx = cv.getContext('2d');
+    const N = 75, DIST = 145;
+    let pts = [];
+
+    function resize() {
+        cv.width  = window.innerWidth;
+        cv.height = window.innerHeight;
+    }
+
+    function Pt() {
+        this.x  = Math.random() * cv.width;
+        this.y  = Math.random() * cv.height;
+        this.vx = (Math.random() - .5) * .38;
+        this.vy = (Math.random() - .5) * .38;
+        this.r  = Math.random() * 1.4 + .5;
+        this.hue = Math.random() > .5 ? 0 : 1; // 0=purple, 1=cyan
+    }
+
+    function init() { pts = []; for (let i = 0; i < N; i++) pts.push(new Pt()); }
+
+    function tick() {
+        cx.clearRect(0, 0, cv.width, cv.height);
+
+        // connections
+        for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+                const dx = pts[i].x - pts[j].x;
+                const dy = pts[i].y - pts[j].y;
+                const d  = Math.hypot(dx, dy);
+                if (d < DIST) {
+                    const a = (1 - d / DIST) * .28;
+                    const g = cx.createLinearGradient(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+                    g.addColorStop(0, `rgba(168,85,247,${a})`);
+                    g.addColorStop(1, `rgba(34,211,238,${a})`);
+                    cx.beginPath();
+                    cx.moveTo(pts[i].x, pts[i].y);
+                    cx.lineTo(pts[j].x, pts[j].y);
+                    cx.strokeStyle = g;
+                    cx.lineWidth = .5;
+                    cx.stroke();
+                }
+            }
+        }
+
+        // dots
+        pts.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > cv.width)  p.vx *= -1;
+            if (p.y < 0 || p.y > cv.height) p.vy *= -1;
+            cx.beginPath();
+            cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            cx.fillStyle = p.hue ? '#22d3ee' : '#a855f7';
+            cx.fill();
+        });
+
+        requestAnimationFrame(tick);
+    }
+
+    resize(); init(); tick();
+    window.addEventListener('resize', () => { resize(); init(); });
+})();
+
+/* ── SCROLL NAV ───────────────────────────────────────────── */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('s', scrollY > 50), { passive: true });
+
+/* ── INTERSECTION OBSERVER ────────────────────────────────── */
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+    });
+}, { threshold: 0.12 });
+
+let cardDelay = 0;
+document.querySelectorAll('.reveal, .card').forEach(el => {
+    if (el.classList.contains('card')) {
+        el.style.transitionDelay = (cardDelay++ * 110) + 'ms';
+    }
+    io.observe(el);
+});
+
+/* ── SIGNUP ───────────────────────────────────────────────── */
+function onSignup(e) {
+    e.preventDefault();
+    const btn = document.getElementById('sub-btn');
+    const inp = e.target.querySelector('input');
+    btn.textContent = "You're in ✓";
+    btn.disabled = true;
+    inp.disabled  = true;
+}
+</script>
+</body>
+</html>
