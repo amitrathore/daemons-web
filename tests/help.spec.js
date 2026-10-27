@@ -66,4 +66,5 @@ test('assistant setup explains where to connect and why approval alone does not 
   await expect(page.getByText('Add a remote MCP server in your assistant.',{exact:true})).toBeVisible();
   await expect(page.getByText('Access approval alone does not start work.',{exact:false})).toBeVisible();
   await expect(page.getByRole('button',{name:'Copy server address'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Read the official MCP developer guide →'})).toHaveAttribute('href','https://api.daemons.ai/docs/mcp');
 });
