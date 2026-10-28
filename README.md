@@ -5,7 +5,7 @@ site at https://daemons.ai. The login link opens the separate operational consol
 at https://app.daemons.ai, deployed on Fly in `daemons-console`.
 
 The vanilla JavaScript console lives in `app/`. It uses the Clojure control API at
-https://api.daemons.ai for Intergraph login, daemon definitions/versioning, work,
+https://api.daemons.ai for Intergraph login, Daemon definitions/versioning, work,
 activity, OAuth consent, and assistant access revocation. No credentials belong
 in this repository or frontend configuration. The server sets security headers
 and serves the application shell for console routes.

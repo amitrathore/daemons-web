@@ -24,7 +24,7 @@ test('home explains daemon versus task and the four steps on desktop and mobile'
   await fixture(page);await page.goto('/');
   await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).toBeVisible();
   await expect(page.locator('.steps li')).toHaveCount(4);
-  await expect(page.getByText('A daemon is a reusable set of instructions for an agent.',{exact:false})).toBeVisible();
+  await expect(page.getByText('A Daemon is a reusable set of instructions for an agent.',{exact:false})).toBeVisible();
   await page.screenshot({path:'test-results/inline-help-home-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -60,7 +60,7 @@ test('published daemon explains waiting, interrupted work, results, and unpublis
 test('approved access is not presented as a live assistant',async({page})=>{
   const connections=[{id:'c1',daemon_ids:[id],scopes:['daemons:read','work:execute'],revoked:false,expires_at:'2099-01-01',last_seen_at:null,assistant:{},client_name:'My assistant'}];
   await fixture(page,{connections});await page.goto(`/daemons/${id}`);
-  await expect(page.getByRole('heading',{name:'Next: give your daemon its first task'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Next: give your Daemon its first task'})).toBeVisible();
   await expect(page.getByText('Approval alone does not mean the assistant is currently running.',{exact:false})).toBeVisible();
   await page.goto('/connections');
   await expect(page.getByText('Pick up tasks and send progress and results',{exact:true})).toBeVisible();
