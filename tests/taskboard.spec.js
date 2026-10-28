@@ -11,7 +11,7 @@ async function fixture(page){
   else if(path==='connections')result=[{daemon_ids:[id],scopes:['work:execute'],expires_at:'2099-01-01',revoked:false}];
   else if(path===`daemons/${id}`)result={id,draft:definition,revision:1,published_revision:1};
   else if(path.endsWith('/versions'))result=[{revision:1,definition}];
-  else if(path.endsWith('/board')){boards++;if(fail){await route.fulfill({status:503,json:{error:'Temporarily unavailable'}});return;}result=boardFixture(work);result.queue_revision=revision;result.columns.working.items.forEach(w=>{w.assistant='Muse';w.progress='Comparing experience and local relationships';});}
+  else if(path.endsWith('/board')){boards++;if(fail){await route.fulfill({status:503,json:{error:'Temporarily unavailable'}});return;}result=boardFixture(work);result.queue_revision=revision;result.columns.finished.items.forEach(w=>{w.progress='Old progress should stay hidden';});result.columns.working.items.forEach(w=>{w.assistant='Muse';w.progress='Comparing experience and local relationships';});}
   else if(path.endsWith('/work-order')){expect(req.headers()['idempotency-key']).toBeTruthy();expect(req.headers()['x-csrf-token']).toBe('csrf');expect(body.expected_queue_revision).toBe(revision);if(conflict){revision++;await route.fulfill({status:409,json:{error:'The queue changed. Refresh it before reordering.'}});return;}const moving=work.find(w=>w.id===body.work_id);work=work.filter(w=>w!==moving);let pos=body.before_work_id?work.findIndex(w=>w.id===body.before_work_id):work.length;work.splice(pos,0,moving);revision++;result={queue_revision:revision};}
   else if(path.startsWith('work/')){const w=work.find(w=>w.id===path.split('/')[1]);if(path.endsWith('/activity'))result={items:[{id:1,type:'work.progress',created_at:'2026-10-28T10:00:00Z',data:{report:{message:'Progress reported'}}}]};else{reads++;result=w;}}
   else if(path.endsWith('/memory'))result={items:[]};
@@ -25,7 +25,7 @@ async function fixture(page){
 test('native board has collapsed results, progress, queue controls and usable mobile layout',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
  for(const name of ['Queued','In progress','Needs attention','Finished'])await expect(page.getByRole('region',{name,exact:true})).toBeVisible();
- expect(state.reads).toBe(0);await expect(page.getByText('A completed brief that starts collapsed',{exact:true})).toHaveCount(0);
+ await expect(page.getByText('Old progress should stay hidden',{exact:true})).toHaveCount(0);expect(state.reads).toBe(0);await expect(page.getByText('A completed brief that starts collapsed',{exact:true})).toHaveCount(0);
  await expect(page.getByText('Comparing experience and local relationships',{exact:true})).toBeVisible();
  await page.locator('[data-card-id="w2"] [data-move="top"]').focus();await page.keyboard.press('Enter');
  await expect(page.locator('[data-column="queued"] [data-card-id]').first()).toHaveAttribute('data-card-id','w2');

@@ -27,7 +27,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
         card.querySelector('.board-card-title').textContent=w.title||'Task';
         card.querySelector('.board-card-status').textContent=`${col==='queued'?`#${w.queue_position} · `:''}${status[w.status]||w.status}${w.cancel_requested&&w.status==='working'?' · Stop requested':''}`;
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?new Date(w.updated_at).toLocaleString():''}`;
-        card.querySelector('.board-card-progress').textContent=w.progress||'';
+        card.querySelector('.board-card-progress').textContent=col==='working'?(w.progress||''):'';
         card.querySelector('.board-order').innerHTML=col==='queued'?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
       }
       const ids=new Set(items.map(w=>w.id));for(const card of [...holder.children])if(!ids.has(card.dataset.cardId))card.remove();
