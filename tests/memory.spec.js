@@ -1,0 +1,68 @@
+import {test,expect} from '@playwright/test';
+const id='00000000-0000-4000-8000-000000000005';
+const entryId='00000000-0000-4000-8000-000000000006';
+const taskId='00000000-0000-4000-8000-000000000007';
+const attempt='00000000-0000-4000-8000-000000000008';
+test('owner saves sourced memory, consults optional evidence, reads starting context and archives',async({page})=>{
+  let entries=[],supplemental=false, submitted=null;
+  const definition={name:'Cofounder Finder',purpose:'Find an operating partner',instructions:'Ask before contacting anyone',required_capabilities:[]};
+  await page.route('https://api.daemons.ai/v1/**',async route=>{
+    const req=route.request(),u=new URL(req.url()),path=u.pathname.slice(4),body=req.postDataJSON();let result;
+    if(req.method()!=='GET')expect(req.headers()['x-csrf-token']).toBe('csrf');
+    if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
+    else if(path==='connections')result=[{daemon_ids:[id],scopes:['work:execute'],revoked:false,expires_at:'2099-01-01'}];
+    else if(path===`daemons/${id}`)result={id,draft:definition,revision:1,published_revision:1};
+    else if(path.endsWith('/versions'))result=[{revision:1,definition}];
+    else if(path.endsWith('/activity'))result=[];
+    else if(path.endsWith('/work')&&req.method()==='POST'){submitted=body;result={id:taskId};}
+    else if(path.endsWith('/work'))result=[{id:taskId,status:'succeeded',revision:1,attempt:1,attempt_id:attempt,input:{task:'Find candidates'},result:{result:'Shortlist ready'},updated_at:'2026-10-27'}];
+    else if(path.endsWith('/context'))result={starting_context:{provider:'neon',items:[{title:'Earlier agreed region',content:'Highway 108 corridor'}]}};
+    else if(path.endsWith('/work-search'))result={items:[{id:taskId,status:'succeeded',excerpt:'Find candidates'}]};
+    else if(path.endsWith('/memory')&&req.method()==='POST'){
+      expect(body.expected_revision).toBe(0);expect(body.sources).toEqual([{url:'https://hey108.com'}]);expect(body.confirmed).toBe(true);expect(body.pinned).toBe(true);
+      entries=[{...body,id:entryId,revision:1,author:{kind:'owner'},updated_at:'2026-10-27'}];result=entries[0];
+    }else if(path.endsWith('/memory')&&u.searchParams.has('history'))result={...entries[0],history:[{revision:1,document:entries[0],created_at:'2026-10-27'}]};
+    else if(path.endsWith('/memory'))result={items:entries.filter(e=>!e.archived||u.searchParams.get('archived')==='true')};
+    else if(path.endsWith('/memory-archive')){entries[0].archived=true;result=entries[0];}
+    else if(path.endsWith('/memory-search')){supplemental=body.include_supplemental;result={provider:'neon',items:entries,supplemental:{providers:[{provider:'Test parallel provider',items:[{title:'Optional evidence',excerpt:'A complementary research perspective'}]}]}};}
+    else if(path.endsWith('/memory-providers'))result={catalog:[{id:'neon',name:'Neon PostgreSQL',external:false}],bindings:[],evaluations:[],corpus_revision:1};
+    else throw Error('Unexpected request '+path);
+    await route.fulfill({json:result});
+  });
+  await page.goto(`/daemons/${id}`);
+  await page.locator('#memory-panel > summary').click();
+  await expect(page.getByText('No saved memory yet.',{exact:false})).toBeVisible();
+  await page.getByText('Add or edit memory',{exact:true}).click();
+  await page.getByLabel('Title',{exact:true}).fill('Target region');
+  await page.getByLabel('Memory',{exact:true}).fill('Prioritize local merchant relationships');
+  await page.getByLabel('Sources: one URL or task:ID per line').fill('https://hey108.com');
+  await page.getByLabel('I confirm this information').check();
+  await page.getByLabel('Prioritize in task briefings').check();
+  await page.getByRole('button',{name:'Save memory',exact:true}).click();
+  await expect(page.getByText('Target region',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Revision history'}).click();
+  await expect(page.getByText('Version 1',{exact:true})).toBeVisible();
+  await page.getByText('Search memory and consult parallel providers',{exact:true}).click();
+  await page.getByLabel('What do you want to recall?').fill('partner');
+  await page.getByLabel('Include optional results from parallel providers').check();
+  await page.getByRole('button',{name:'Search memory',exact:true}).click();
+  await expect(page.getByText('A complementary research perspective',{exact:true})).toBeVisible();expect(supplemental).toBe(true);
+  await page.getByText('Starting context',{exact:true}).click();
+  await expect(page.getByText('Earlier agreed region',{exact:true})).toBeVisible();
+  await page.getByText('Use earlier tasks as context',{exact:true}).click();
+  await page.getByLabel('Find candidates (succeeded)').check();
+  await page.getByLabel('Task',{exact:true}).fill('Refine shortlist');
+  await page.getByRole('button',{name:'Add task',exact:true}).click();
+  await expect.poll(()=>submitted?.input.context_work_ids).toEqual([taskId]);
+  await page.locator('#memory-panel > summary').click();
+  await expect(page.getByText('Target region',{exact:true})).toBeVisible();
+  await page.getByText('Memory providers and comparisons',{exact:true}).click();
+  await expect(page.getByText('Neon PostgreSQL',{exact:true})).toBeVisible();
+  await page.screenshot({path:'test-results/memory-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:'test-results/memory-mobile.png',fullPage:true});
+  await page.getByRole('button',{name:'Archive',exact:true}).click();
+  await expect(page.getByText('No saved memory yet.',{exact:false})).toBeVisible();
+  await page.getByLabel('Include archived memory (audit history)').check();
+  await expect(page.getByText('Target region',{exact:true})).toBeVisible();
+});

@@ -4,3 +4,7 @@
 
 /* Keep long assistant reports readable across the available page width. */
 .daemon-heading{margin-bottom:1rem}.daemon-reference>details{padding:.4rem 0}.daemon-reference>details+details{border-top:1px solid var(--line);padding-top:1rem}#tasks .toolbar{margin-bottom:.75rem}#submit-work textarea{min-height:100px}
+
+select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line);padding:.6rem;border-radius:7px;max-width:100%}#memory-panel .toolbar{margin-bottom:.5rem}#memory-panel form{margin:1rem 0}
+
+button[hidden]{display:none}
