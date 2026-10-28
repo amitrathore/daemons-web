@@ -1,5 +1,6 @@
 import {API} from './config.js';
 import {mountMemory} from './memory.js';
+import {mountBoard,disposeBoard} from './taskboard.js';
 const main = document.querySelector('#main');
 let session;
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,7 +24,7 @@ const permissionLabels = {
   'daemons:read': 'Read instructions, shared memory, tasks, and results',
   'daemons:manage': 'Change instructions, publish versions, pause task starts, and manage tasks',
   'daemons:create': 'Create new daemons',
-  'work:submit': 'Add tasks, request stops, and try tasks again',
+  'work:submit': 'Add tasks, reorder the queue, request stops, retry, and archive finished tasks',
   'work:execute': 'Pick up tasks and send progress and results',
 };
 const statusLabels = {
@@ -36,6 +37,7 @@ const activityLabels = {
   'daemon.created': 'Daemon created', 'daemon.edited': 'Draft instructions saved',
   'daemon.published': 'Instructions published', 'daemon.paused': 'New task starts paused',
   'daemon.resumed': 'New task starts resumed', 'assistant.attached': 'Assistant ready to pick up tasks',
+  'work.reordered': 'Queue order changed', 'work.archived': 'Finished task archived', 'work.attention_required': 'Task needs your review',
   'work.submitted': 'Task added', 'work.claimed': 'Assistant picked up the task',
   'work.progress': 'Progress update', 'work.succeeded': 'Task completed',
   'work.failed': 'Assistant reported a problem', 'work.cancelled': 'Task cancelled',
@@ -124,25 +126,33 @@ function taskView(w) {
   return `<article class="list-row"><div class="toolbar">${status(w.status)}<span class="meta">Instructions v${w.revision} · ${w.attempt ? `Attempt ${w.attempt}` : 'Not started'}</span></div><p class="task-title">${esc(w.input.task || JSON.stringify(w.input))}</p>${explanations[w.status] ? `<p class="helper">${esc(explanations[w.status])}</p>` : ''}${w.cancel_requested && w.status === 'working' ? '<p class="callout">Stop requested. The assistant must acknowledge it; it may continue working until then.</p>' : ''}${w.result !== null && w.result !== undefined ? `<div class="task-result"><h3>${w.status === 'succeeded' ? 'Result' : 'Assistant’s report'}</h3>${taskResultView(w.result)}</div>` : ''}<p class="helper">Last update: ${esc(dateLabel(w.updated_at))}</p>${canRetry ? '<p class="helper">Before trying again, review any actions already completed. Another attempt may repeat them.</p>' : ''}<div class="actions">${['queued', 'working'].includes(w.status) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="cancel">${w.status === 'queued' ? 'Cancel task' : 'Request stop'}</button>` : ''}${canRetry ? `<button data-work="${esc(w.id)}" data-action="retry">Try task again</button>` : ''}</div>${w.attempt_id ? `<details data-starting="${esc(w.id)}" data-attempt="${esc(w.attempt_id)}"><summary>Starting context</summary><div>Open to read the briefing used for this attempt.</div></details>` : ''}<details><summary>Technical task details</summary><div class="meta">Task ID: ${esc(w.id)}</div><pre>${pretty({input: w.input, attempt_id: w.attempt_id, result: w.result})}</pre></details></article>`;
 }
 async function daemon(id) {
-  const [d, work, activity, versions, connections] = await Promise.all([api(`daemons/${id}`), api(`daemons/${id}/work`), api(`daemons/${id}/activity`), api(`daemons/${id}/versions`), api('connections')]);
+  disposeBoard();
+  const [d, initialBoard, versions, connections] = await Promise.all([api(`daemons/${id}`), api(`daemons/${id}/board`), api(`daemons/${id}/versions`), api('connections')]);
+  const work = Object.values(initialBoard.columns).flatMap(c => c.items);
   const current = d.revision === d.published_revision;
   main.innerHTML = `<a href="/">← All daemons</a>
     <div class="toolbar daemon-heading"><div><h1>${esc(d.draft.name)}</h1>${status(d.paused ? 'paused' : d.published_revision ? 'published' : 'draft')} <span class="meta">${d.published_revision ? `Tasks use version ${d.published_revision}` : `Draft version ${d.revision}`}</span></div><div class="actions"><a class="button secondary" href="/daemons/${id}/edit">Edit instructions</a><button id="pause" class="secondary" title="Pausing prevents new task starts. Tasks in progress can continue.">${d.paused ? 'Resume task starts' : 'Pause task starts'}</button>${!current ? '<button id="publish">Publish instructions</button>' : ''}</div></div>
     <p class="lead">${esc(d.draft.purpose)}</p>
-    ${nextStep(d, work, connections)}
+    <div id="next-step">${nextStep(d, work, connections)}</div>
     ${d.published_revision && !current ? `<p class="callout">You have unpublished edits in draft version ${d.revision}. Publish instructions to use them for new tasks. Tasks already added keep the version they started with.</p>` : ''}
-    <section class="panel"><h2>Give this daemon a task</h2><form id="submit-work"><label for="task-input">Task</label><textarea id="task-input" name="task" required aria-describedby="task-help" placeholder="What should the assistant accomplish this time?"></textarea><p id="task-help" class="field-help">${!d.published_revision ? 'Publish the instructions above to enable tasks.' : d.paused ? 'This task will wait until you resume task starts and an assistant picks it up.' : 'Your connected assistant must check for tasks to start this assignment.'}</p><details id="related-tasks"><summary>Use earlier tasks as context</summary><div id="related-options">Open to choose earlier tasks.</div></details><button ${!d.published_revision ? 'disabled' : ''}>Add task</button></form></section>
-    <section class="panel" id="tasks"><div class="toolbar"><h2>Tasks and results</h2><button id="refresh" class="secondary">Refresh tasks</button></div><p class="helper">Refresh to see the latest updates reported by your assistant.</p>${work.length ? work.map(taskView).join('') : '<p>No tasks yet. Add a specific request above after publishing the instructions.</p>'}</section>
+    <section class="panel" id="tasks" aria-labelledby="task-board-title"><div class="toolbar"><h2 id="task-board-title">Task board</h2><div class="actions"><button id="new-task" class="secondary">Add a task</button><button id="refresh" class="secondary">Refresh tasks</button></div></div><p class="helper">Queue order determines which task is picked up next. Connected assistants can work on more than one task at a time.</p><p class="helper" id="board-updated" aria-live="polite"></p><p class="error" id="board-error" role="status" hidden></p><div class="task-board"></div></section>
+    <details class="panel task-composer" id="task-composer" ${work.length ? '' : 'open'}><summary>Give this daemon a task</summary><form id="submit-work"><label for="task-input">Task</label><textarea id="task-input" name="task" required aria-describedby="task-help" placeholder="What should the assistant accomplish this time?"></textarea><p id="task-help" class="field-help">${!d.published_revision ? 'Publish the instructions above to enable tasks.' : d.paused ? 'This task will wait until you resume task starts and an assistant picks it up.' : 'Your connected assistant must check for tasks to start this assignment.'}</p><details id="related-tasks"><summary>Use earlier tasks as context</summary><div id="related-options">Open to choose earlier tasks.</div></details><button ${!d.published_revision ? 'disabled' : ''}>Add task</button></form></details>
     <section class="panel daemon-reference"><details id="memory-panel"><summary>Memory</summary><div id="memory-content"></div></details><details><summary>Instructions and versions</summary><p class="helper">Published instructions are saved snapshots for tasks. Editing creates a draft; publishing chooses the version for new tasks.</p>${!current ? `<details ${!d.published_revision ? 'open' : ''}><summary>Draft version ${d.revision}</summary>${instructionsView(d.draft)}</details>` : ''}${versions.map(v => `<details><summary>Published version ${v.revision}${v.revision === d.published_revision ? ' · used by new tasks' : ''}</summary>${instructionsView(v.definition)}</details>`).join('')}<details><summary>Advanced: portable definition</summary><pre>${pretty(d.draft)}</pre></details></details>
-    <details><summary>Activity</summary><p class="helper">Task events and progress messages. Finished reports are shown once, under Tasks and results.</p>${activityView(activity)}</details>
+    <details id="daemon-activity"><summary>Activity</summary><p class="helper">Task events and progress messages. Finished reports are shown once, on their task cards.</p><div id="daemon-activity-content">Open to read the event history.</div></details>
     <details><summary>How tasks and assistants work</summary><p>A daemon stores reusable instructions. An assistant you connect picks up individual tasks and sends progress and results here. Access approval does not mean the assistant is currently running.</p><p>Publishing chooses instructions for new tasks. Pausing prevents new task starts; it does not stop tasks already in progress.</p><p><a href="/connect">Connect an assistant</a> · <a href="/connections">Review assistant access</a></p></details></section>`;
   mountMemory({id, api, post, notify, esc, pretty, work});
+  document.querySelector('#daemon-activity').addEventListener('toggle',async e=>{if(!e.currentTarget.open)return;try{const events=await api(`daemons/${id}/activity`);document.querySelector('#daemon-activity-content').innerHTML=activityView(events);}catch(err){notify(err.message);}});
+  const controller = mountBoard({id, initial: initialBoard, api, post, notify, esc, renderTask:taskView, resultView, onUpdate: board => {
+    d.paused=!!board.paused;document.querySelector('#pause').textContent=d.paused?'Resume task starts':'Pause task starts';
+    document.querySelector('#next-step').innerHTML = nextStep(d, Object.values(board.columns).flatMap(c=>c.items), connections);
+  }});
+  bind('#new-task','click',()=>{document.querySelector('#task-composer').open=true;document.querySelector('#task-input').focus();});
+  document.querySelector('#next-step').addEventListener('click',e=>{if(e.target.closest('a')?.getAttribute('href')==='#submit-work')document.querySelector('#task-composer').open=true;});
   bind('#publish', 'click', async () => { await post(`daemons/${id}/publish`, {revision: d.revision}); await daemon(id); notify('Instructions published. New tasks will use this version.'); });
   bind('#pause', 'click', async () => { await post(`daemons/${id}/pause`, {paused: !d.paused}); await daemon(id); });
-  bind('#refresh', 'click', () => daemon(id));
-  const submitKey = newKey();
-  bind('#submit-work', 'submit', async e => { await post(`daemons/${id}/work`, {input: {task: new FormData(e.currentTarget).get('task'), context_work_ids: new FormData(e.currentTarget).getAll('context_work_id')}}, {'Idempotency-Key': submitKey}); await daemon(id); notify('Task added. It will wait for an assistant to pick it up.'); });
-  document.querySelectorAll('[data-work]').forEach(el => el.addEventListener('click', async () => { el.disabled = true; try { await post(`work/${el.dataset.work}/${el.dataset.action}`); await daemon(id); } catch (e) { notify(e.message); el.disabled = false; } }));
+  let submitKey = newKey();
+  bind('#submit-work', 'submit', async e => { const form=e.currentTarget; await post(`daemons/${id}/work`, {input: {task: new FormData(e.currentTarget).get('task'), context_work_ids: new FormData(e.currentTarget).getAll('context_work_id')}}, {'Idempotency-Key': submitKey}); submitKey=newKey();form.reset();await controller.refresh();notify('Task added. It will wait for an assistant to pick it up.'); });
+
 }
 async function connections() {
   const [rows, daemons] = await Promise.all([api('connections'), api('daemons')]);

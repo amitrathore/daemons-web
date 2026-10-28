@@ -1,3 +1,4 @@
+import {boardFixture} from './board-fixture.js';
 import {test,expect} from '@playwright/test';
 const id='00000000-0000-4000-8000-000000000002';
 const definition={schema_version:'daemons/v1',name:'Company researcher',purpose:'Prepare company briefs',instructions:'Cite reliable sources. Ask before contacting anyone.',required_capabilities:[]};
@@ -10,6 +11,8 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
     else if(path==='daemons')result=[daemon];
     else if(path==='connections')result=connections;
     else if(path===`daemons/${id}`)result=daemon;
+    else if(path.endsWith('/board'))result=boardFixture(work);
+    else if(path.startsWith('work/'))result=path.endsWith('/activity')?{items:[]}:work.find(w=>w.id===path.split('/')[1]);
     else if(path.endsWith('/work'))result=work;
     else if(path.endsWith('/activity'))result=activity;
     else if(path.endsWith('/versions'))result=published?[{revision:1,definition}]:[];
@@ -42,6 +45,9 @@ test('published daemon explains waiting, interrupted work, results, and unpublis
   await fixture(page,{edited:true,work});await page.goto(`/daemons/${id}`);
   await expect(page.getByRole('heading',{name:'Next: connect an assistant to do the work'})).toBeVisible();
   await expect(page.getByText('You have unpublished edits in draft version 2.',{exact:false})).toBeVisible();
+  await page.locator('[data-card="w1"] > summary').click();
+  await page.locator('[data-card="w2"] > summary').click();
+  await page.locator('[data-card="w3"] > summary').click();
   await expect(page.getByText('This task has not started.',{exact:false})).toBeVisible();
   await expect(page.getByText('Check what happened before trying again.',{exact:false})).toBeVisible();
   await expect(page.getByText('Brief is ready',{exact:true})).toBeVisible();
@@ -76,6 +82,7 @@ test('completed daemon shows its report once and keeps reference material collap
   const connections=[{daemon_ids:[id],scopes:['work:execute'],revoked:false,expires_at:'2099-01-01'}];
   const activity=[{type:'work.succeeded',created_at:'2026-01-01',data:{report}}, {type:'work.progress',created_at:'2026-01-01',data:{report:{message:'Preparing the plan'}}}];
   await fixture(page,{work,connections,activity});await page.goto(`/daemons/${id}`);
+  await page.locator('[data-card="w1"] > summary').click();
   await expect(page.getByText(report.result,{exact:true})).toHaveCount(1);
   await expect(page.getByText(report.result,{exact:true})).toBeVisible();
   await expect(page.locator('.task-result dt')).toHaveCount(0);
