@@ -34,3 +34,36 @@ test('corporate site explains the product, links to setup, and works across scre
   for(const href of links.filter(h=>h.startsWith('#')))await expect(page.locator(href)).toHaveCount(1);
   expect(errors).toEqual([]);
 });
+
+test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
+  const description='Give your AI agents purpose, principles, and memory that lasts. Create Daemons, connect your assistant, and turn ongoing work into lasting progress.';
+  const assets={'/assets/og-soul-v1.jpg':'image/jpeg','/assets/favicon-soul-v1.svg':'image/svg+xml','/assets/favicon-soul-v1.ico':'image/x-icon','/assets/apple-touch-icon-soul-v1.png':'image/png'};
+  await page.route('http://127.0.0.1:8096/**',async route=>{
+    const p=new URL(route.request().url()).pathname;
+    if(p==='/')return route.fulfill({contentType:'text/html',body:await readFile('index.html','utf8')});
+    if(p==='/site.css')return route.fulfill({contentType:'text/css',body:await readFile('site.css','utf8')});
+    if(assets[p])return route.fulfill({contentType:assets[p],body:await readFile('.'+p)});
+    return route.continue();
+  });
+  await page.goto('/');
+  for(const selector of ['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'])await expect(page.locator(selector)).toHaveAttribute('content',description);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content','summary_large_image');
+  for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-soul-v1.jpg');
+  await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content','1200');
+  await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content','630');
+  await expect(page.locator('meta[property="og:image:type"]')).toHaveAttribute('content','image/jpeg');
+  const iconLinks=await page.locator('link[rel="icon"],link[rel="apple-touch-icon"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
+  expect(iconLinks.sort()).toEqual(Object.keys(assets).filter(p=>!p.endsWith('.jpg')).sort());
+  for(const [src,size] of [['/assets/og-soul-v1.jpg',[1200,630]],['/assets/apple-touch-icon-soul-v1.png',[180,180]],['/assets/favicon-soul-v1.svg',[64,64]]]){
+    const dimensions=await page.evaluate(src=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve([i.naturalWidth,i.naturalHeight]);i.onerror=reject;i.src=src;}),src);
+    expect(dimensions).toEqual(size);
+  }
+  const ico=await readFile('assets/favicon-soul-v1.ico');
+  expect(ico.readUInt16LE(2)).toBe(1);
+  expect(ico.readUInt16LE(4)).toBe(3);
+  expect([0,1,2].map(i=>ico[6+16*i])).toEqual([16,32,48]);
+  await page.setViewportSize({width:720,height:280});
+  await page.setContent('<body style="margin:0;padding:32px;background:#10121a;color:#f2f1f7;font:14px Arial"><h2>Soul spark · favicon sizes</h2><div style="display:flex;gap:36px;align-items:center">'+[16,32,48,180].map(n=>`<div><img alt="${n}px favicon" src="http://127.0.0.1:8096/assets/${n===180?'apple-touch-icon-soul-v1.png':'favicon-soul-v1.svg'}" width="${n}" height="${n}"><p>${n}px</p></div>`).join('')+'</div></body>');
+  await expect(page.getByAltText('16px favicon')).toBeVisible();
+  await page.screenshot({path:'test-results/favicon-sizes.png'});
+});
