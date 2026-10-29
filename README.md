@@ -1,8 +1,10 @@
 # Daemons.ai web
 
-The root `index.html`, `hero.jpg`, and `CNAME` remain the GitHub Pages marketing
+The root `index.html`, `site.css`, and `CNAME` remain the GitHub Pages marketing
 site at https://daemons.ai. The login link opens the separate operational console
 at https://app.daemons.ai, deployed on Fly in `daemons-console`.
+The marketing page explains the shipped product and uses a labeled illustration
+with fictional task data. Its preview makes no authenticated API calls.
 
 The vanilla JavaScript console lives in `app/`. It uses the Clojure control API at
 https://api.daemons.ai for Intergraph login, Daemon definitions/versioning, work,
