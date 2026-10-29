@@ -10,8 +10,8 @@ test('corporate site explains the product, links to setup, and works across scre
     return route.continue();
   });
   await page.goto('/');
-  await expect(page).toHaveTitle('Daemons.ai — A lasting home for your AI agents');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Give your AI agentsa lasting home.');
+  await expect(page).toHaveTitle('Daemons.ai — Give your agents a soul');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Give your agentsa soul.');
   await expect(page.getByRole('link',{name:'Open Daemons.ai ↗',exact:true}).first()).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'Connect an assistant →',exact:true})).toHaveAttribute('href','https://app.daemons.ai/connect');
   await expect(page.locator('form,input,canvas,script')).toHaveCount(0);
