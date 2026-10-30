@@ -5,6 +5,7 @@ test('corporate site explains the product, links to setup, and works across scre
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const pathname=new URL(route.request().url()).pathname;
+    if(pathname==='/footer.css')return route.fulfill({contentType:'text/css',body:await readFile('footer.css','utf8')});
     if(pathname==='/site.css')return route.fulfill({contentType:'text/css',body:await readFile('site.css','utf8')});
     if(pathname==='/')return route.fulfill({contentType:'text/html',body:await readFile('index.html','utf8')});
     return route.continue();
@@ -58,6 +59,7 @@ test('social metadata exposes a decodable large image and matching favicon expor
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:await readFile('index.html','utf8')});
+    if(p==='/footer.css')return route.fulfill({contentType:'text/css',body:await readFile('footer.css','utf8')});
     if(p==='/site.css')return route.fulfill({contentType:'text/css',body:await readFile('site.css','utf8')});
     if(assets[p])return route.fulfill({contentType:assets[p],body:await readFile('.'+p)});
     return route.continue();

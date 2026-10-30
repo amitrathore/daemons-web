@@ -59,7 +59,7 @@ Pushing root changes separately updates GitHub Pages. The existing `CNAME` stays
 ## Brand and appearance
 
 The public site and console share `brand.css` and `theme.js`. First visits use
-Light; the header offers Light, Dark, and System. A one-year, non-sensitive
+Light; the footer offers Light, Dark, and System. A one-year, non-sensitive
 `daemons_appearance` preference cookie is shared across production subdomains
 (Secure, SameSite=Lax). Local previews use localStorage. Storage failures retain
 a usable light default and allow a temporary choice. Theme setup runs before
@@ -68,3 +68,17 @@ styles load and uses only same-origin scripts, styles, fonts, and images.
 The console build copies the shared theme, licensed Manrope font, and brand
 assets. Character artwork is decorative and does not indicate execution status.
 See `docs/brand-assets.md` for generated-art prompts and source asset details.
+
+## Public legal and support pages
+
+The shared footer links to `/terms/`, `/privacy/`, and `/contact/`, served as
+static directory pages by GitHub Pages. They name Daemons LLP and
+hello@daemons.ai, as confirmed by the operator. Policy structure was adapted
+from Yvatar’s local legal source, with Daemons-specific account, memory, task,
+assistant-access, archival-history, and theme-cookie disclosures. No payment,
+social-publishing, or AI-generation claims were carried over.
+
+The console links to the public policies; changing its footer does not add an
+acceptance gate or alter authentication. Update the policy revision date when
+changing substantive policy text. `footer.css` is shared by all public pages and
+the console, and is copied into the console build.

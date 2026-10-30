@@ -2,7 +2,7 @@ FROM node:22-alpine AS build
 WORKDIR /build
 COPY package.json ./
 COPY app ./app
-COPY brand.css theme.js ./
+COPY brand.css footer.css theme.js ./
 COPY assets ./assets
 COPY scripts/build.mjs ./scripts/build.mjs
 RUN node scripts/build.mjs

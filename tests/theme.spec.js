@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 
 async function marketing(page){
   await page.route('http://127.0.0.1:8096/',route=>readFile('index.html','utf8').then(body=>route.fulfill({contentType:'text/html',body})));
+  await page.route('http://127.0.0.1:8096/footer.css',route=>readFile('footer.css','utf8').then(body=>route.fulfill({contentType:'text/css',body})));
   await page.route('http://127.0.0.1:8096/site.css',route=>readFile('site.css','utf8').then(body=>route.fulfill({contentType:'text/css',body})));
 }
 function luminance(hex){if(hex.length===4)hex='#'+hex.slice(1).split('').map(c=>c+c).join('');const a=hex.match(/[\da-f]{2}/gi).map(n=>parseInt(n,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*a[0]+.7152*a[1]+.0722*a[2];}
