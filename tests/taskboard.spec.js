@@ -7,7 +7,8 @@ async function fixture(page){
  const definition={name:'Hey108 Cofounder Finder',purpose:'Find a partner to build and launch Hey108',instructions:'Use evidence and ask before outreach.',required_capabilities:[]};
  await page.route('https://api.daemons.ai/v1/**',async route=>{
   const req=route.request(),u=new URL(req.url()),path=u.pathname.slice(4),body=req.postDataJSON();let result;
-  if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
+  if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
   else if(path==='connections')result=[{daemon_ids:[id],scopes:['work:execute'],expires_at:'2099-01-01',revoked:false}];
   else if(path===`daemons/${id}`)result={id,draft:definition,revision:1,published_revision:1};
   else if(path.endsWith('/versions'))result=[{revision:1,definition}];

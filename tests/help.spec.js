@@ -7,7 +7,8 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
   await page.route('https://api.daemons.ai/v1/**',async route=>{
     const path=new URL(route.request().url()).pathname.slice(4);
     let result;
-    if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
+    if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
     else if(path==='daemons')result=[daemon];
     else if(path==='connections')result=connections;
     else if(path===`daemons/${id}`)result=daemon;
