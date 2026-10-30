@@ -6,7 +6,8 @@ async function fixture(page){
  const state={enabled:false,revision:0,paused:false,conflict:false,puts:0};
  await page.route('https://api.daemons.ai/v1/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname.slice(4);let data=[];
-  if(path==='session')data={account:{email:'owner@example.test'},csrf:'token'};
+  if(path.endsWith('/appearance'))data={icon:'spark',color:'violet',revision:0};
+  else if(path==='session')data={account:{email:'owner@example.test'},csrf:'token'};
   else if(path==='connections')data=[{id:'c1',daemon_ids:[id],scopes:['daemons:read','work:execute'],assistant:{name:'My executor'},expires_at:'2099-01-01',revoked:false}];
   else if(path==='daemons')data=[{id,draft:definition,revision:1,published_revision:1}];
   else if(path===`daemons/${id}`)data={id,draft:definition,revision:1,published_revision:1,paused:state.paused};
@@ -24,14 +25,14 @@ async function fixture(page){
 }
 test('owner enables/disables pickup, sees mirrored policy, and a conflict never blindly repeats a write',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
- const toggle=page.getByRole('checkbox',{name:'Auto-start queued tasks for My executor'});
+ await page.getByRole('link',{name:'Settings',exact:true}).click();const toggle=page.getByRole('checkbox',{name:'Auto-start queued tasks for My executor'});
  await expect(toggle).not.toBeChecked();await expect(page.getByText('Never checked')).toBeVisible();
- await page.getByLabel('Task',{exact:true}).fill('Keep my task draft');
+ await page.getByRole('button',{name:'Add a task',exact:true}).click();await page.getByLabel('Task',{exact:true}).fill('Keep my task draft');await page.getByRole('button',{name:'Close task composer'}).click();
  await toggle.check();await expect(toggle).toBeChecked();await expect(page.getByLabel('Task',{exact:true})).toHaveValue('Keep my task draft');
  await page.goto('/connections');await page.getByText('Automatic pickup by Daemon',{exact:true}).click();await expect(toggle).toBeChecked();
  await toggle.uncheck();await expect(toggle).not.toBeChecked();
- await page.goto(`/daemons/${id}`);await expect(toggle).not.toBeChecked();
- state.conflict=true;await toggle.check();await expect(page.getByRole('status')).toContainText('Automatic pickup changed');await expect(toggle).not.toBeChecked();expect(state.puts).toBe(3);
+ await page.goto(`/daemons/${id}#settings`);await expect(toggle).not.toBeChecked();
+ state.conflict=true;await toggle.check();await expect(page.locator('#notice')).toContainText('Automatic pickup changed');await expect(toggle).not.toBeChecked();expect(state.puts).toBe(3);
  state.paused=true;await page.getByRole('button',{name:'Refresh pickup settings'}).click();await expect(page.getByText('Automatic pickup paused.',{exact:false})).toBeVisible();
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'test-results/automatic-pickup-mobile.png',fullPage:true});

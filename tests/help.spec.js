@@ -7,8 +7,10 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
   await page.route('https://api.daemons.ai/v1/**',async route=>{
     const path=new URL(route.request().url()).pathname.slice(4);
     let result;
-    if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    if(path.endsWith('/appearance'))result={icon:'spark',color:'violet',revision:0};
+    else if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
     else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
+    else if(path==='control-room')result=[daemon];
     else if(path==='daemons')result=[daemon];
     else if(path==='connections')result=connections;
     else if(path===`daemons/${id}`)result=daemon;
@@ -16,6 +18,7 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
     else if(path.startsWith('work/'))result=path.endsWith('/activity')?{items:[]}:work.find(w=>w.id===path.split('/')[1]);
     else if(path.endsWith('/work'))result=work;
     else if(path.endsWith('/activity'))result=activity;
+    else if(path.endsWith('/memory'))result={items:[]};
     else if(path.endsWith('/versions'))result=published?[{revision:1,definition}]:[];
     else throw Error('Unexpected route: '+path);
     await route.fulfill({json:result});
@@ -23,7 +26,7 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
 }
 test('home explains daemon versus task and the four steps on desktop and mobile',async({page})=>{
   await fixture(page);await page.goto('/');
-  await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).not.toBeVisible();await page.getByText('Getting started',{exact:true}).click();await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).toBeVisible();
   await expect(page.locator('.steps li')).toHaveCount(4);
   await expect(page.getByText('A Daemon is a reusable set of instructions for an agent.',{exact:false})).toBeVisible();
   await page.screenshot({path:'test-results/inline-help-home-desktop.png',fullPage:true});
@@ -35,7 +38,7 @@ test('draft tells owners to publish, explains the effect, and keeps tasks disabl
   await fixture(page,{published:false});await page.goto(`/daemons/${id}`);
   await expect(page.getByRole('heading',{name:'Next: publish your instructions'})).toBeVisible();
   await expect(page.getByText('It does not launch an assistant or start a task.',{exact:false})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Add task',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:'Add a task',exact:true}).click();await expect(page.getByRole('button',{name:'Add task',exact:true})).toBeDisabled();
   await expect(page.getByText('Publish the instructions above to enable tasks.',{exact:true})).toBeVisible();
   await expect(page.locator('pre')).not.toBeVisible();
 });
@@ -45,16 +48,13 @@ test('published daemon explains waiting, interrupted work, results, and unpublis
     {id:'w3',status:'succeeded',attempt:1,revision:1,input:{task:'Research Gamma'},result:{message:'Brief is ready',sources:['https://example.test']},updated_at:'2026-01-01'}];
   await fixture(page,{edited:true,work});await page.goto(`/daemons/${id}`);
   await expect(page.getByRole('heading',{name:'Next: connect an assistant to do the work'})).toBeVisible();
-  await expect(page.getByText('You have unpublished edits in draft version 2.',{exact:false})).toBeVisible();
-  await page.locator('[data-card="w1"] > summary').click();
-  await page.locator('[data-card="w2"] > summary').click();
+  await expect(page.getByText('You have unpublished changes.',{exact:false})).toBeVisible();
+  await page.locator('[data-card="w1"] > summary').click();await expect(page.getByText('This task has not started.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Close task details'}).click();
+  await page.locator('[data-card="w2"] > summary').click();await expect(page.getByText('Check what happened before trying again.',{exact:false})).toBeVisible();await expect(page.getByRole('button',{name:'Try task again'})).toBeVisible();await page.getByRole('button',{name:'Close task details'}).click();
   await page.locator('[data-card="w3"] > summary').click();
-  await expect(page.getByText('This task has not started.',{exact:false})).toBeVisible();
-  await expect(page.getByText('Check what happened before trying again.',{exact:false})).toBeVisible();
   await expect(page.getByText('Brief is ready',{exact:true})).toBeVisible();
-  await page.getByText('Activity',{exact:true}).click();
+  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Settings',exact:true}).click();await page.getByText('Activity',{exact:true}).click();
   await expect(page.getByText('Assistant picked up the task',{exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Try task again'})).toBeVisible();
   await page.screenshot({path:'test-results/inline-help-tasks-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
@@ -91,14 +91,12 @@ test('completed daemon shows its report once and keeps reference material collap
   await expect(page.getByRole('region',{name:'What to do next'})).toHaveCount(0);
   await expect(page.getByText('Draft version 1',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Preparing the plan',{exact:true})).not.toBeVisible();
-  await page.getByText('Activity',{exact:true}).click();
+  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Settings',exact:true}).click();await page.getByText('Activity',{exact:true}).click();
   await expect(page.getByText('Preparing the plan',{exact:true})).toBeVisible();
   await expect(page.getByText(report.result,{exact:true})).toHaveCount(1);
-  await page.getByText('Activity',{exact:true}).click();
-  await page.getByText('Instructions and versions',{exact:true}).click();
-  await page.getByText('Published version 1 · used by new tasks',{exact:true}).click();
+  await page.getByRole('link',{name:'Instructions',exact:true}).click();
   await expect(page.getByText(definition.instructions,{exact:true})).toBeVisible();
-  await page.getByText('Instructions and versions',{exact:true}).click();
+  await page.getByRole('link',{name:'Tasks',exact:true}).click();
   await page.screenshot({path:'test-results/daemon-focused-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

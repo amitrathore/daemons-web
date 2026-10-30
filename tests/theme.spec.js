@@ -58,7 +58,7 @@ test('theme preference is shared between the corporate site and console subdomai
   await context.route(/^https:\/\/(app\.)?daemons\.ai\//,async route=>{
     const u=new URL(route.request().url()),app=u.hostname==='app.daemons.ai';
     let file=u.pathname==='/'?(app?'app/index.html':'index.html'):u.pathname.slice(1);
-    if(app&&['app.js','config.js','style.css','memory.js','taskboard.js','automatic-pickup.js'].includes(file))file='app/'+file;
+    if(app&&['app.js','config.js','style.css','memory.js','taskboard.js','automatic-pickup.js','identity.js','room.js'].includes(file))file='app/'+file;
     try{const ext=file.slice(file.lastIndexOf('.'));await route.fulfill({contentType:mime[ext]||'application/octet-stream',body:await readFile(file)});}catch{await route.fulfill({status:404,body:'Not found'});}
   });
   await context.route('https://api.daemons.ai/v1/**',route=>route.fulfill({status:401,json:{error:'Please log in to Daemons.ai.'}}));

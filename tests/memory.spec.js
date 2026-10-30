@@ -11,7 +11,8 @@ test('owner saves sourced memory, consults optional evidence, reads starting con
   await page.route('https://api.daemons.ai/v1/**',async route=>{
     const req=route.request(),u=new URL(req.url()),path=u.pathname.slice(4),body=req.postDataJSON();let result;
     if(req.method()!=='GET')expect(req.headers()['x-csrf-token']).toBe('csrf');
-    if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    if(path.endsWith('/appearance'))result={icon:'spark',color:'violet',revision:0};
+    else if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
     else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
     else if(path==='connections')result=[{daemon_ids:[id],scopes:['work:execute'],revoked:false,expires_at:'2099-01-01'}];
     else if(path===`daemons/${id}`)result={id,draft:definition,revision:1,published_revision:1};
@@ -35,7 +36,7 @@ test('owner saves sourced memory, consults optional evidence, reads starting con
     await route.fulfill({json:result});
   });
   await page.goto(`/daemons/${id}`);
-  await page.locator('#memory-panel > summary').click();
+  await page.getByRole('link',{name:'Memory',exact:true}).click();
   await expect(page.getByText('No saved memory yet.',{exact:false})).toBeVisible();
   await page.getByText('Add or edit memory',{exact:true}).click();
   await page.getByLabel('Title',{exact:true}).fill('Target region');
@@ -52,16 +53,16 @@ test('owner saves sourced memory, consults optional evidence, reads starting con
   await page.getByLabel('Include optional results from parallel providers').check();
   await page.getByRole('button',{name:'Search memory',exact:true}).click();
   await expect(page.getByText('A complementary research perspective',{exact:true})).toBeVisible();expect(supplemental).toBe(true);
-  await page.locator(`[data-card="${taskId}"] > summary`).click();
+  await page.getByRole('link',{name:'Tasks',exact:true}).click();await page.locator(`[data-card="${taskId}"] > summary`).click();
   await page.getByText('Starting context',{exact:true}).click();
   await expect(page.getByText('Earlier agreed region',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Add a task',exact:true}).click();
+  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('button',{name:'Add a task',exact:true}).click();
   await page.getByText('Use earlier tasks as context',{exact:true}).click();
   await page.getByLabel('Find candidates (succeeded)').check();
   await page.getByLabel('Task',{exact:true}).fill('Refine shortlist');
   await page.getByRole('button',{name:'Add task',exact:true}).click();
   await expect.poll(()=>submitted?.input.context_work_ids).toEqual([taskId]);
-  await expect(page.locator('#memory-list .toolbar > strong').filter({hasText:'Target region'})).toBeVisible();
+  await page.getByRole('link',{name:'Memory',exact:true}).click();await expect(page.locator('#memory-list .toolbar > strong').filter({hasText:'Target region'})).toBeVisible();
   await page.getByText('Memory providers and comparisons',{exact:true}).click();
   await expect(page.getByText('Neon PostgreSQL',{exact:true})).toBeVisible();
   await page.screenshot({path:'test-results/memory-desktop.png',fullPage:true});
