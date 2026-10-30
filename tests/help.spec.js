@@ -71,6 +71,9 @@ test('approved access is not presented as a live assistant',async({page})=>{
 test('assistant setup explains where to connect and why approval alone does not start tasks',async({page})=>{
   await fixture(page);await page.goto('/connect');
   await expect(page.getByText('MCP is a standard way for assistants to use tools in other apps.',{exact:false})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Learn and create in your assistant'})).toBeVisible();
+  await expect(page.getByText('Use my Daemons.ai connection to explain what a Daemon is,',{exact:false})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Read the getting-started guide'})).toHaveAttribute('href','https://api.daemons.ai/docs/mcp#getting-started');
   await expect(page.getByText('Add a remote MCP server in your assistant.',{exact:true})).toBeVisible();
   await expect(page.getByText('Access approval alone does not start work.',{exact:false})).toBeVisible();
   await expect(page.getByRole('button',{name:'Copy server address'})).toBeVisible();

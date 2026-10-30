@@ -43,3 +43,10 @@ Built-in imagegen edit: replace only the social-card headline with “Give your
 assistants a soul.” Preserve the ivory backdrop, mint/peach shapes, lavender
 pearlescent smiling soul-star, mint orbit, Daemons.ai wordmark, and “Purpose.
 Memory. Continuity.” tagline. Reflow the longer headline to fit safely on the left.
+
+## AI assistants headline (v4)
+
+Current social card: `assets/og-ai-assistants-v4.jpg`, 1200 × 630. Built-in
+imagegen edits the prior card to “Give your AI assistants a soul.”, retaining the
+mascot, wordmark, palette, and “Purpose. Memory. Continuity.” tagline. Earlier
+versions remain historical assets. Public metadata uses the new versioned URL.

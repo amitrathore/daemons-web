@@ -11,8 +11,8 @@ test('corporate site explains the product, links to setup, and works across scre
     return route.continue();
   });
   await page.goto('/');
-  await expect(page).toHaveTitle('Daemons.ai — Give your assistants a soul. Stay in control of their work.');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Give your assistants a soul. Stay in control of their work.');
+  await expect(page).toHaveTitle('Daemons.ai — Give your AI assistants a soul. Stay in control of their work.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Give your AI assistants a soul. Stay in control of their work.');
   await expect(page.getByRole('link',{name:'Open Daemons.ai ↗',exact:true}).first()).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'See how it works',exact:true})).toHaveAttribute('href','#how-it-works');
   await expect(page.getByRole('link',{name:'Create your first Daemon',exact:true})).toHaveCount(2);
@@ -55,7 +55,7 @@ test('corporate site explains the product, links to setup, and works across scre
 
 test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
   const description='Keep instructions, memory, and tasks together. Choose which assistants contribute, and carry the work forward when tools change.';
-  const assets={'/assets/og-assistants-v3.jpg':'image/jpeg','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
+  const assets={'/assets/og-ai-assistants-v4.jpg':'image/jpeg','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:await readFile('index.html','utf8')});
@@ -65,16 +65,16 @@ test('social metadata exposes a decodable large image and matching favicon expor
     return route.continue();
   });
   await page.goto('/');
-  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Give your assistants a soul. Stay in control of their work.');
+  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Give your AI assistants a soul. Stay in control of their work.');
   for(const selector of ['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'])await expect(page.locator(selector)).toHaveAttribute('content',description);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content','summary_large_image');
-  for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-assistants-v3.jpg');
+  for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-ai-assistants-v4.jpg');
   await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content','1200');
   await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content','630');
   await expect(page.locator('meta[property="og:image:type"]')).toHaveAttribute('content','image/jpeg');
   const iconLinks=await page.locator('link[rel="icon"],link[rel="apple-touch-icon"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
   expect(iconLinks.sort()).toEqual(Object.keys(assets).filter(p=>!p.endsWith('.jpg')).sort());
-  for(const [src,size] of [['/assets/og-assistants-v3.jpg',[1200,630]],['/assets/apple-touch-icon-familiar-v2.png',[180,180]],['/assets/favicon-familiar-v2.svg',[64,64]]]){
+  for(const [src,size] of [['/assets/og-ai-assistants-v4.jpg',[1200,630]],['/assets/apple-touch-icon-familiar-v2.png',[180,180]],['/assets/favicon-familiar-v2.svg',[64,64]]]){
     const dimensions=await page.evaluate(src=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve([i.naturalWidth,i.naturalHeight]);i.onerror=reject;i.src=src;}),src);
     expect(dimensions).toEqual(size);
   }
