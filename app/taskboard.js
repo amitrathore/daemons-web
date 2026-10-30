@@ -10,7 +10,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
   const status={queued:'Waiting for an assistant',working:'In progress',failed:'Failed',attention_required:'Needs your review',succeeded:'Completed',cancelled:'Cancelled'};
   const pageDepth=Object.fromEntries(Object.keys(labels).map(k=>[k,1]));
   let state=initial, busy=false, dead=false;
-  const detailsCache=new Map(),activityCache=new Map();
+  const detailsCache=new Map(),activityCache=new Map(),movingDialogs=new WeakSet();
   const safe=fn=>async e=>{try{await fn(e);}catch(err){notify(err.message);}};
   grid.innerHTML=Object.entries(labels).map(([key,label])=>`<section class="board-column" data-column="${key}" aria-label="${label}"><h3>${label} <span class="column-count"></span></h3><div class="board-cards"></div><p class="column-empty"></p><button class="secondary board-more" data-more="${key}" hidden>More ${label.toLowerCase()} tasks</button></section>`).join('');
   function activeKey(){const el=document.activeElement;return el?.closest('[data-card-id]')?{id:el.closest('[data-card-id]').dataset.cardId,move:el.dataset.move,action:el.dataset.action,summary:el.tagName==='SUMMARY'}:null;}
@@ -24,17 +24,28 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
       for(const w of items){
         let card=existing.get(w.id);
         if(!card){card=document.createElement('article');card.className='board-card';card.dataset.cardId=w.id;card.innerHTML=`<details data-card="${w.id}"><summary><span class="board-card-title"></span><span class="board-card-status"></span><span class="board-card-meta"></span><span class="board-card-progress"></span></summary><dialog class="task-drawer" aria-label="Task details"><div class="drawer-top"><h2>Task details</h2><button type="button" class="secondary" data-close-task aria-label="Close task details">✕</button></div><div class="board-detail"></div><div class="board-order actions" aria-label="Queue position"></div></dialog></details>`;}
-        if(holder.children[items.indexOf(w)]!==card){if(card.moveBefore&&card.isConnected)holder.moveBefore(card,holder.children[items.indexOf(w)]||null);else holder.insertBefore(card,holder.children[items.indexOf(w)]||null);}card.dataset.updated=w.updated_at;card.dataset.attempt=w.attempt_id||'';
+        if(holder.children[items.indexOf(w)]!==card){
+          const before=holder.children[items.indexOf(w)]||null;
+          if(typeof holder.moveBefore==='function'&&card.isConnected)holder.moveBefore(card,before);
+          else {
+            // insertBefore disconnects the subtree. Preserve modal state explicitly
+            // on browsers without atomic DOM moves (including older Safari).
+            const dialog=card.querySelector('dialog'),modal=dialog?.open;
+            if(modal){movingDialogs.add(dialog);dialog.close();}
+            holder.insertBefore(card,before);
+            if(modal)dialog.showModal();
+          }
+        }card.dataset.updated=w.updated_at;card.dataset.attempt=w.attempt_id||'';
         card.querySelector('.board-card-title').textContent=w.title||'Task';
         card.querySelector('.board-card-status').textContent=`${col==='queued'?`#${w.queue_position} · `:''}${status[w.status]||w.status}${w.cancel_requested&&w.status==='working'?' · Stop requested':''}`;
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?relative(w.updated_at):''}`;
         card.querySelector('.board-card-progress').textContent=col==='working'?(w.progress||''):'';
         card.querySelector('.board-order').innerHTML=col==='queued'?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
       }
-      const ids=new Set(items.map(w=>w.id));for(const card of [...holder.children])if(!ids.has(card.dataset.cardId))card.remove();
+
     }
     // Cards that changed columns keep their detail state, regardless of processing order.
-    for(const card of grid.querySelectorAll('[data-card-id]'))if(!Object.values(board.columns).some(c=>c.items.some(w=>w.id===card.dataset.cardId)))card.remove();
+    for(const card of grid.querySelectorAll('[data-card-id]'))if(!Object.values(board.columns).some(c=>c.items.some(w=>w.id===card.dataset.cardId))){const dialog=card.querySelector('dialog');if(dialog?.open)dialog.close();card.remove();}
     if(focus){const card=grid.querySelector(`[data-card-id="${focus.id}"]`);const target=focus.move?card?.querySelector(`[data-move="${focus.move}"]`):focus.action?card?.querySelector(`[data-action="${focus.action}"]`):focus.summary?card?.querySelector('summary'):null;target?.focus({preventScroll:true});}
     document.querySelector('#board-updated').textContent=`Last refreshed ${new Date().toLocaleTimeString()} · Updates every 15 seconds while this page is visible.${board.paused?' New task starts are paused.':''}`;
     onUpdate?.(board);
@@ -83,12 +94,12 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
     b.disabled=true;
     try{
       if(b.dataset.move){const w=state.columns.queued.items.find(w=>w.id===b.closest('[data-card-id]').dataset.cardId);const before={top:state.first_queued_id,up:w.previous_id,down:w.after_next_id,end:undefined}[b.dataset.move];await post(`daemons/${id}/work-order`,{work_id:w.id,before_work_id:before||undefined,expected_queue_revision:state.queue_revision},{'Idempotency-Key':crypto.randomUUID()});}
-      if(b.dataset.work)await post(`work/${b.dataset.work}/${b.dataset.action}`);
+      if(b.dataset.work){await post(`work/${b.dataset.work}/${b.dataset.action}`);if(b.dataset.action==='retry')notify('Task queued again. Your assistant must pick it up to start a new attempt.');}
       if(b.dataset.archive)await post(`daemons/${id}/work-archive`,{work_id:b.dataset.archive},{'Idempotency-Key':crypto.randomUUID()});
     }catch(err){notify(err.message);}
     finally{b.disabled=false;await refresh();}
   }));
-  root.addEventListener('close',e=>{if(e.target.matches('.task-drawer')){const details=e.target.closest('details');details.open=false;details.querySelector('summary').focus();}},true);
+  root.addEventListener('close',e=>{if(e.target.matches('.task-drawer')){if(movingDialogs.delete(e.target))return;const details=e.target.closest('details');details.open=false;details.querySelector('summary').focus();}},true);
   root.addEventListener('click',e=>{if(e.target.matches('.task-drawer')){const b=e.target.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)e.target.close();}});
   const visibility=()=>{if(!document.hidden)refresh();};document.addEventListener('visibilitychange',visibility);
   const timer=setInterval(()=>{if(!document.hidden)refresh();},15000);

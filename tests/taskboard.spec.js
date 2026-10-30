@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {boardFixture} from './board-fixture.js';
 const id='00000000-0000-4000-8000-000000000009';
 async function fixture(page){
- let revision=7,boards=0,reads=0,conflict=false,fail=false;
+ let revision=7,boards=0,reads=0,conflict=false,fail=false,retries=0;
  let work=[{id:'w1',status:'queued',revision:1,input:{task:'Research local partners'},updated_at:'2026-10-28T10:00:00Z'}, {id:'w2',status:'queued',revision:1,input:{task:'Prepare outreach drafts'},updated_at:'2026-10-28T10:00:00Z'}, {id:'w3',status:'working',revision:1,attempt:1,attempt_id:'attempt',input:{task:'Evaluate the first shortlist'},updated_at:'2026-10-28T10:00:00Z'}, {id:'w4',status:'succeeded',revision:1,attempt:1,input:{task:'Define partner criteria'},result:{result:'A completed brief that starts collapsed'},updated_at:'2026-10-28T10:00:00Z'}];
  const definition={name:'Hey108 Cofounder Finder',purpose:'Find a partner to build and launch Hey108',instructions:'Use evidence and ask before outreach.',required_capabilities:[]};
  await page.route('https://api.daemons.ai/v1/**',async route=>{
@@ -15,6 +15,7 @@ async function fixture(page){
   else if(path.endsWith('/versions'))result=[{revision:1,definition}];
   else if(path.endsWith('/board')){boards++;if(fail){await route.fulfill({status:503,json:{error:'Temporarily unavailable'}});return;}result=boardFixture(work);result.queue_revision=revision;result.columns.finished.items.forEach(w=>{w.progress='Old progress should stay hidden';});result.columns.working.items.forEach(w=>{w.assistant='Muse';w.progress='Comparing experience and local relationships';});}
   else if(path.endsWith('/work-order')){expect(req.headers()['idempotency-key']).toBeTruthy();expect(req.headers()['x-csrf-token']).toBe('csrf');expect(body.expected_queue_revision).toBe(revision);if(conflict){revision++;await route.fulfill({status:409,json:{error:'The queue changed. Refresh it before reordering.'}});return;}const moving=work.find(w=>w.id===body.work_id);work=work.filter(w=>w!==moving);let pos=body.before_work_id?work.findIndex(w=>w.id===body.before_work_id):work.length;work.splice(pos,0,moving);revision++;result={queue_revision:revision};}
+  else if(path.endsWith('/retry')){retries++;const w=work.find(w=>w.id===path.split('/')[1]);w.status='queued';w.attempt_id=null;w.result=null;w.updated_at='2026-10-30T12:00:00Z';revision++;result=w;}
   else if(path.startsWith('work/')){const w=work.find(w=>w.id===path.split('/')[1]);if(path.endsWith('/activity'))result={items:[{id:1,type:'work.progress',created_at:'2026-10-28T10:00:00Z',data:{report:{message:'Progress reported'}}}]};else{reads++;result=w;}}
   else if(path.endsWith('/memory'))result={items:[]};
   else if(path.endsWith('/activity'))result=[];
@@ -22,7 +23,7 @@ async function fixture(page){
   else throw Error(path);
   await route.fulfill({json:result});
  });
- return {get boards(){return boards;},get reads(){return reads;},conflict:()=>conflict=true,fail:()=>fail=true,complete:()=>{work.find(w=>w.id==='w3').status='succeeded';work.find(w=>w.id==='w3').updated_at='2026-10-28T11:00:00Z';work.find(w=>w.id==='w3').result={result:'Shortlist evaluation completed'};}};
+ return {get retries(){return retries;},needsReview:()=>{work.find(w=>w.id==='w3').status='attention_required';},get boards(){return boards;},get reads(){return reads;},conflict:()=>conflict=true,fail:()=>fail=true,complete:()=>{work.find(w=>w.id==='w3').status='succeeded';work.find(w=>w.id==='w3').updated_at='2026-10-28T11:00:00Z';work.find(w=>w.id==='w3').result={result:'Shortlist evaluation completed'};}};
 }
 test('native board has collapsed results, progress, queue controls and usable mobile layout',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
@@ -56,4 +57,20 @@ test('a queue conflict refreshes without silently repeating the requested reorde
  await page.goto(`/daemons/${id}`);await page.locator('[data-card="w2"] > summary').click();await page.locator('[data-card-id="w2"] [data-move="top"]').click();
  await expect(page.locator('#notice')).toContainText('The queue changed');expect(orders).toBe(1);
  await expect(page.locator('[data-column="queued"] [data-card-id]').first()).toHaveAttribute('data-card-id','w1');
+});
+
+for(const atomic of [true,false])test(`retry moves an open drawer to queued without trapping the page (atomic DOM moves: ${atomic})`,async({page})=>{
+ if(!atomic)await page.addInitScript(()=>{Object.defineProperty(Element.prototype,'moveBefore',{value:undefined,configurable:true});});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const state=await fixture(page);state.needsReview();await page.goto(`/daemons/${id}`);
+ await page.locator('[data-card="w3"] > summary').click();await page.getByRole('button',{name:'Try task again',exact:true}).click();
+ await expect(page.locator('[data-column=queued] [data-card-id=w3]')).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'Task details'})).toBeVisible();await expect(page.getByText('This task has not started.',{exact:false})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Try task again',exact:true})).toHaveCount(0);
+ expect(state.retries).toBe(1);await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'Task details'})).toHaveCount(0);
+ await expect(page.locator('[data-card="w3"] > summary')).toBeFocused();await page.getByRole('button',{name:'Add a task',exact:true}).click();await expect(page.getByRole('dialog',{name:'Give this Daemon a task'})).toBeVisible();await page.keyboard.press('Escape');
+ await page.getByRole('link',{name:'Memory',exact:true}).click();await expect(page.locator('#memory-content')).toBeVisible();expect(errors).toEqual([]);
+});
+test('polling moves an open task forward without atomic moves and leaves the drawer closable',async({page})=>{
+ await page.addInitScript(()=>{Object.defineProperty(Element.prototype,'moveBefore',{value:undefined,configurable:true});});await page.clock.install();const state=await fixture(page);await page.goto(`/daemons/${id}`);await page.locator('[data-card="w3"] > summary').click();await expect(page.locator('.task-drawer:modal')).toBeVisible();state.complete();await page.clock.fastForward(15000);await expect(page.getByText('Shortlist evaluation completed',{exact:true})).toBeVisible();await expect(page.locator('[data-column=finished] [data-card-id=w3]')).toBeVisible();await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('button',{name:'Refresh tasks',exact:true}).click();await expect(page.locator('#board-error')).toBeHidden();
 });
