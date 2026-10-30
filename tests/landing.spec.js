@@ -14,13 +14,14 @@ test('corporate site explains the product, links to setup, and works across scre
   await expect(page.getByRole('heading',{level:1})).toHaveText('Give your agentsa soul.');
   await expect(page.getByRole('link',{name:'Open Daemons.ai ↗',exact:true}).first()).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'Connect an assistant →',exact:true})).toHaveAttribute('href','https://app.daemons.ai/connect');
-  await expect(page.locator('form,input,canvas,script')).toHaveCount(0);
+  await expect(page.locator('form,input,canvas')).toHaveCount(0);
+  await expect(page.locator('script')).toHaveAttribute('src','/theme.js');
   await expect(page.getByText('ILLUSTRATIVE PRODUCT PREVIEW · EXAMPLE DATA')).toBeVisible();
   await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();
   await page.keyboard.press('Enter');await expect(page).toHaveURL(/#main$/);
   for(const width of [1365,900,768,560,390,320]){
     await page.setViewportSize({width,height:900});
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    expect(await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(n=>n.getBoundingClientRect().right>innerWidth+1).map(n=>n.tagName+'.'+n.className)}))).toEqual({width,scroll:width,overflow:[]});
     for(const label of ['Queued','In progress','Needs attention','Finished'])await expect(page.getByRole('heading',{name:new RegExp(`^${label}\\s*1$`)})).toBeVisible();
   }
   await page.setViewportSize({width:1365,height:1000});await page.screenshot({path:'test-results/landing-desktop.png',fullPage:true});
@@ -37,7 +38,7 @@ test('corporate site explains the product, links to setup, and works across scre
 
 test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
   const description='Give your AI agents purpose, principles, and memory that lasts. Create Daemons, connect your assistant, and turn ongoing work into lasting progress.';
-  const assets={'/assets/og-soul-v1.jpg':'image/jpeg','/assets/favicon-soul-v1.svg':'image/svg+xml','/assets/favicon-soul-v1.ico':'image/x-icon','/assets/apple-touch-icon-soul-v1.png':'image/png'};
+  const assets={'/assets/og-familiar-v2.jpg':'image/jpeg','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:await readFile('index.html','utf8')});
@@ -48,22 +49,22 @@ test('social metadata exposes a decodable large image and matching favicon expor
   await page.goto('/');
   for(const selector of ['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'])await expect(page.locator(selector)).toHaveAttribute('content',description);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content','summary_large_image');
-  for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-soul-v1.jpg');
+  for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-familiar-v2.jpg');
   await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content','1200');
   await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content','630');
   await expect(page.locator('meta[property="og:image:type"]')).toHaveAttribute('content','image/jpeg');
   const iconLinks=await page.locator('link[rel="icon"],link[rel="apple-touch-icon"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
   expect(iconLinks.sort()).toEqual(Object.keys(assets).filter(p=>!p.endsWith('.jpg')).sort());
-  for(const [src,size] of [['/assets/og-soul-v1.jpg',[1200,630]],['/assets/apple-touch-icon-soul-v1.png',[180,180]],['/assets/favicon-soul-v1.svg',[64,64]]]){
+  for(const [src,size] of [['/assets/og-familiar-v2.jpg',[1200,630]],['/assets/apple-touch-icon-familiar-v2.png',[180,180]],['/assets/favicon-familiar-v2.svg',[64,64]]]){
     const dimensions=await page.evaluate(src=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve([i.naturalWidth,i.naturalHeight]);i.onerror=reject;i.src=src;}),src);
     expect(dimensions).toEqual(size);
   }
-  const ico=await readFile('assets/favicon-soul-v1.ico');
+  const ico=await readFile('assets/favicon-familiar-v2.ico');
   expect(ico.readUInt16LE(2)).toBe(1);
   expect(ico.readUInt16LE(4)).toBe(3);
   expect([0,1,2].map(i=>ico[6+16*i])).toEqual([16,32,48]);
   await page.setViewportSize({width:720,height:280});
-  await page.setContent('<body style="margin:0;padding:32px;background:#10121a;color:#f2f1f7;font:14px Arial"><h2>Soul spark · favicon sizes</h2><div style="display:flex;gap:36px;align-items:center">'+[16,32,48,180].map(n=>`<div><img alt="${n}px favicon" src="http://127.0.0.1:8096/assets/${n===180?'apple-touch-icon-soul-v1.png':'favicon-soul-v1.svg'}" width="${n}" height="${n}"><p>${n}px</p></div>`).join('')+'</div></body>');
+  await page.setContent('<body style="margin:0;padding:32px;background:#10121a;color:#f2f1f7;font:14px Arial"><h2>Soul spark · favicon sizes</h2><div style="display:flex;gap:36px;align-items:center">'+[16,32,48,180].map(n=>`<div><img alt="${n}px favicon" src="http://127.0.0.1:8096/assets/${n===180?'apple-touch-icon-familiar-v2.png':'favicon-familiar-v2.svg'}" width="${n}" height="${n}"><p>${n}px</p></div>`).join('')+'</div></body>');
   await expect(page.getByAltText('16px favicon')).toBeVisible();
   await page.screenshot({path:'test-results/favicon-sizes.png'});
 });

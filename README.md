@@ -39,3 +39,16 @@ fly deploy --config fly.app.toml --remote-only --ha=false
 `Dockerfile.app` builds static assets and runs a non-root Node static server.
 Pushing root changes separately updates GitHub Pages. The existing `CNAME` stays
 `daemons.ai`; console deployment does not repoint the marketing domain.
+
+## Brand and appearance
+
+The public site and console share `brand.css` and `theme.js`. First visits use
+Light; the header offers Light, Dark, and System. A one-year, non-sensitive
+`daemons_appearance` preference cookie is shared across production subdomains
+(Secure, SameSite=Lax). Local previews use localStorage. Storage failures retain
+a usable light default and allow a temporary choice. Theme setup runs before
+styles load and uses only same-origin scripts, styles, fonts, and images.
+
+The console build copies the shared theme, licensed Manrope font, and brand
+assets. Character artwork is decorative and does not indicate execution status.
+See `docs/brand-assets.md` for generated-art prompts and source asset details.
