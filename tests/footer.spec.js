@@ -10,6 +10,8 @@ test('footer links lead to readable legal/support pages and theme control is in 
   });
   for(const path of ['/','/terms/','/privacy/','/contact/']){
     await page.goto(path);
+    await expect(page.locator('footer').getByRole('link',{name:'Awake Venture',exact:true})).toHaveAttribute('href','https://awake.vc/');
+    await expect(page.locator('footer').getByRole('link',{name:'Amit Rathore',exact:true})).toHaveAttribute('href','https://AmitRathore.com/');
     await expect(page.locator('header #appearance')).toHaveCount(0);
     await expect(page.locator('footer #appearance')).toHaveCount(1);
     for(const theme of ['light','dark']){
@@ -42,6 +44,8 @@ test('footer links lead to readable legal/support pages and theme control is in 
 test('console footer includes public legal links and preserves theme choice',async({page})=>{
   await page.route('https://api.daemons.ai/v1/**',route=>route.fulfill({status:401,json:{error:'Please log in to Daemons.ai.'}}));
   await page.goto('/');
+  await expect(page.locator('footer').getByRole('link',{name:'Awake Venture',exact:true})).toHaveAttribute('href','https://awake.vc/');
+  await expect(page.locator('footer').getByRole('link',{name:'Amit Rathore',exact:true})).toHaveAttribute('href','https://AmitRathore.com/');
   await expect(page.locator('header #appearance')).toHaveCount(0);
   await page.locator('footer #appearance').selectOption('dark');await page.reload();
   await expect(page.locator('footer #appearance')).toHaveValue('dark');

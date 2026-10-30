@@ -21,3 +21,5 @@
 .legal-page p,.legal-page li{color:var(--muted)}.legal-page a{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
 .legal-page .legal-nav{padding:20px 24px;background:var(--surface);border:1px solid var(--line);border-radius:18px;margin:28px 0}.legal-nav ol{margin:0;padding-left:22px}.legal-nav a{display:inline-block;padding:7px 0;min-height:44px}
 @media(max-width:560px){.legal-page{width:calc(100% - 36px);margin-top:36px}.legal-page h1{letter-spacing:-1px}.legal-page h2{font-size:22px}}
+
+.footer-credits{display:flex;align-items:center;flex-wrap:wrap;gap:8px 24px;margin-top:20px}.site-footer .footer-credits p{margin:0;font-size:13px;line-height:1.7;color:var(--muted)}.site-footer .footer-credits a{display:inline-flex;align-items:center;min-height:44px;color:var(--text);font-weight:650;text-decoration:underline;text-underline-offset:3px}.site-footer .footer-credits a:hover{color:var(--purple)}
