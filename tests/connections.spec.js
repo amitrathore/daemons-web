@@ -1,0 +1,37 @@
+import {test,expect} from '@playwright/test';
+const did='11111111-1111-4111-8111-111111111111',a='12345678-1000-4000-8000-000000000001',b='12345678-2000-4000-8000-000000000002';
+async function fixture(page){
+ const base={daemon_ids:[did],scopes:['daemons:read','work:execute'],assistant:{name:'Quincy'},client_name:'Muse',revoked:false,expires_at:'2099-01-01',created_at:'2026-10-01',label:null,label_revision:0};
+ const state={writes:[],revokes:[],conflict:false,fail:false,rows:[{...base,id:a,short_id:'123456781',last_seen_at:'2026-10-25'},{...base,id:b,short_id:'123456782',last_seen_at:'2026-10-29'},{...base,id:'33333333-3333-4333-8333-333333333333',short_id:'33333333',expires_at:'2020-01-01',last_seen_at:'2026-10-30'},{...base,id:'44444444-4444-4444-8444-444444444444',short_id:'44444444',revoked:true,last_seen_at:'2026-10-30'},{...base,id:'55555555-5555-4555-8555-555555555555',short_id:'55555555',last_seen_at:null,created_at:'2026-10-28'}]};
+ await page.route('https://api.daemons.ai/v1/**',async route=>{const req=route.request(),p=new URL(req.url()).pathname.slice(4);let data;
+ if(p==='session')data={account:{email:'owner@example.test'},csrf:'csrf'};
+ else if(p==='daemons')data=[{id:did,draft:{name:'Hey108 Cofounder Finder'}}];
+ else if(p==='connections')data=state.rows;
+ else if(p.endsWith('/label')){const id=p.split('/')[1],row=state.rows.find(r=>r.id===id),body=req.postDataJSON();state.writes.push({id,...body});expect(req.headers()['x-csrf-token']).toBe('csrf');if(state.fail)return route.fulfill({status:503,json:{error:'Could not save. Try again.'}});if(state.conflict){state.conflict=false;row.label='Other browser';row.label_revision++;return route.fulfill({status:409,json:{error:'This nickname changed. Review the saved label before trying again.'}});}expect(body.expected_revision).toBe(row.label_revision);row.label=body.label||null;row.label_revision++;data={id,label:row.label,label_revision:row.label_revision};}
+ else if(p.startsWith('connections/')&&req.method()==='DELETE'){const id=p.split('/')[1];state.revokes.push(id);state.rows.find(r=>r.id===id).revoked=true;data={revoked:true};}
+ else if(p.endsWith('/automatic-pickup'))data={published:true,connections:state.rows.map(r=>({connection_id:r.id,name:r.label||'Quincy',assistant_name:'Quincy',label:r.label,short_id:r.short_id,active:!r.revoked&&r.expires_at>'2026',enabled:false,revision:0}))};
+ else throw Error(p);await route.fulfill({json:data});});return state;
+}
+test('active connections sort by recent use, expired/revoked collapse below, and duplicate names have distinct IDs',async({page})=>{
+ await fixture(page);await page.goto('/connections');
+ const active=page.locator('[data-connection-group=active]');await expect(active.locator('[data-connection]').nth(0)).toHaveAttribute('data-connection',b);await expect(active.locator('[data-connection]').nth(1)).toHaveAttribute('data-connection','55555555-5555-4555-8555-555555555555');await expect(active.locator('[data-connection]').nth(2)).toHaveAttribute('data-connection',a);
+ await expect(page.locator('[data-connection-group=expired]')).not.toHaveAttribute('open','');await expect(page.locator('[data-connection-group=revoked]')).not.toHaveAttribute('open','');
+ await expect(page.getByText('123456781',{exact:true})).toBeVisible();await expect(page.getByText('123456782',{exact:true})).toBeVisible();await expect(page.getByText('Not used yet',{exact:false})).toBeVisible();
+ await page.locator(`[data-connection="${b}"]`).getByText('Automatic pickup by Daemon',{exact:true}).click();await expect(page.getByRole('checkbox',{name:'Auto-start queued tasks for Quincy · 123456782',exact:true})).toBeVisible();
+ for(const theme of ['light','dark']){await page.getByRole('combobox',{name:'Appearance'}).selectOption(theme);await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/connections-${theme}-mobile.png`,fullPage:true});}
+});
+test('nicknames persist, preserve the original assistant, clear, and recover stale saves without losing the draft',async({page})=>{
+ const state=await fixture(page);await page.goto('/connections');const card=page.locator(`[data-connection="${b}"]`),input=card.getByLabel('Connection nickname');
+ await card.getByRole('button',{name:'Edit nickname'}).click();await input.fill('Muse — Chrome');await card.getByRole('button',{name:'Save nickname'}).click();await expect(card.getByRole('heading',{name:'Muse — Chrome',exact:true})).toBeVisible();await expect(card.locator('.connection-original')).toHaveText('Quincy · Muse');
+ await page.reload();await expect(card.getByRole('heading',{name:'Muse — Chrome',exact:true})).toBeVisible();await card.getByText('Automatic pickup by Daemon',{exact:true}).click();await expect(card.getByRole('checkbox',{name:'Auto-start queued tasks for Muse — Chrome · 123456782',exact:true})).toBeVisible();
+ await card.getByRole('button',{name:'Edit nickname'}).click();await input.fill('Draft label');state.conflict=true;await card.getByRole('button',{name:'Save nickname'}).click();await expect(card.locator('.label-error')).toContainText('Saved label: Other browser');await expect(input).toHaveValue('Draft label');expect(state.writes.length).toBe(2);await expect(card.getByRole('heading',{name:'Other browser',exact:true})).toBeVisible();
+ await card.getByRole('button',{name:'Cancel',exact:true}).click();await card.getByRole('button',{name:'Edit nickname'}).click();await input.fill('');await card.getByRole('button',{name:'Save nickname'}).click();await expect(card.getByRole('heading',{name:'Quincy',exact:true})).toBeVisible();expect(state.writes.at(-1).expected_revision).toBe(2);
+ await card.getByRole('button',{name:'Edit nickname'}).click();await input.fill('<img src=x onerror=alert(1)>');await card.getByRole('button',{name:'Save nickname'}).click();await expect(card.getByRole('heading',{name:'<img src=x onerror=alert(1)>',exact:true})).toBeVisible();await expect(card.locator('img')).toHaveCount(0);
+ await card.getByRole('button',{name:'Remove access',exact:true}).click();expect(state.revokes).toEqual([b]);await expect(page.locator('[data-connection-group=revoked]')).not.toHaveAttribute('open','');
+});
+test('cancel and failed saves keep policy and names unchanged, and copying uses the full connection ID',async({page,context})=>{
+ const state=await fixture(page);await context.grantPermissions(['clipboard-read','clipboard-write']);await page.goto('/connections');const card=page.locator(`[data-connection="${a}"]`);
+ await card.getByRole('button',{name:'Copy full ID'}).click();expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(a);
+ await card.getByRole('button',{name:'Edit nickname'}).click();await card.getByLabel('Connection nickname').fill('Unsaved');await card.getByRole('button',{name:'Cancel',exact:true}).click();expect(state.writes).toHaveLength(0);
+ await card.getByRole('button',{name:'Edit nickname'}).click();await card.getByLabel('Connection nickname').fill('Keep my draft');state.fail=true;await card.getByRole('button',{name:'Save nickname'}).click();await expect(card.locator('.label-error')).toContainText('Could not save');await expect(card.getByLabel('Connection nickname')).toHaveValue('Keep my draft');await expect(card.getByRole('heading',{name:'Quincy',exact:true})).toBeVisible();expect(state.writes).toHaveLength(1);
+});
