@@ -6,6 +6,19 @@ at https://app.daemons.ai, deployed on Fly in `daemons-console`.
 The marketing page explains the shipped product and uses a labeled illustration
 with fictional task data. Its preview makes no authenticated API calls.
 
+The homepage leads with continuity across assistants: ongoing responsibilities,
+saved plans and decisions, and a shared work queue. Business follow-ups, a home
+renovation, and a community event illustrate successive assignments rather than
+one-off prompts. These are configurable examples, not built-in integrations or
+automatic scheduling. The existing “Give your agents a soul” artwork remains
+supporting brand language.
+
+Preview the public homepage separately from the console:
+
+```sh
+STATIC_ROOT=. PORT=8097 npm start
+```
+
 The vanilla JavaScript console lives in `app/`. It uses the Clojure control API at
 https://api.daemons.ai for Intergraph login, Daemon definitions/versioning, work,
 activity, OAuth consent, and assistant access revocation. No credentials belong
