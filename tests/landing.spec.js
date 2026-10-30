@@ -10,13 +10,15 @@ test('corporate site explains the product, links to setup, and works across scre
     return route.continue();
   });
   await page.goto('/');
-  await expect(page).toHaveTitle('Daemons.ai — Keep your projects moving across assistants');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Your projects move forward. Even when your assistants change.');
+  await expect(page).toHaveTitle('Daemons.ai — Give your agents a soul. Stay in control of their work.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Give your agents a soul. Stay in control of their work.');
   await expect(page.getByRole('link',{name:'Open Daemons.ai ↗',exact:true}).first()).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'See how it works',exact:true})).toHaveAttribute('href','#how-it-works');
   await expect(page.getByRole('link',{name:'Create your first Daemon',exact:true})).toHaveCount(2);
   for (const link of await page.getByRole('link',{name:'Create your first Daemon',exact:true}).all()) await expect(link).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.locator('#examples article')).toHaveCount(3);
+  await expect(page.getByText('A Daemon is a thread of responsibility you carry forward.',{exact:false})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Your workflow. Your choice of assistants.',exact:true})).toBeVisible();
   await expect(page.locator('#examples .example-sequence li')).toHaveCount(9);
   expect(await page.locator('#examples').evaluate(el=>Boolean(el.compareDocumentPosition(document.querySelector('#capabilities')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await expect(page.locator('.selected strong')).toHaveText('Community gathering');
@@ -34,12 +36,14 @@ test('corporate site explains the product, links to setup, and works across scre
   }
   await page.setViewportSize({width:1365,height:1000});await page.screenshot({path:'test-results/landing-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/landing-mobile.png',fullPage:true});
+  await page.getByText('What information can a connected assistant receive?',{exact:true}).click();
+  await expect(page.getByText('Daemons.ai does not guarantee deletion of information already received by an external provider.',{exact:false})).toBeVisible();
   await page.getByText('Where does the work run?',{exact:true}).click();
   await expect(page.getByText('Work runs in your connected assistant’s environment,',{exact:false})).toBeVisible();
   await page.getByText('Can I organize a long-term project here?',{exact:true}).click();
   await expect(page.getByText('Daemons does not automatically schedule work or manage task dependencies.',{exact:false})).toBeVisible();
   await page.getByText('Can several assistants work with the same Daemon?',{exact:true}).click();
-  await expect(page.getByText('Authorize each assistant separately.',{exact:false})).toBeVisible();
+  await expect(page.locator('.faq').getByText('Authorize each assistant separately.',{exact:false})).toBeVisible();
   await page.emulateMedia({reducedMotion:'reduce'});
   expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto');
   const links=await page.locator('a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
@@ -49,7 +53,7 @@ test('corporate site explains the product, links to setup, and works across scre
 });
 
 test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
-  const description='Keep long-term plans, decisions, and tasks together. Coordinate your assistants around ongoing projects, with shared memory that carries the work forward.';
+  const description='Keep instructions, memory, and tasks together. Choose which assistants contribute, and carry the work forward when tools change.';
   const assets={'/assets/og-familiar-v2.jpg':'image/jpeg','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;
@@ -59,7 +63,7 @@ test('social metadata exposes a decodable large image and matching favicon expor
     return route.continue();
   });
   await page.goto('/');
-  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Keep your projects moving across assistants');
+  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Give your agents a soul. Stay in control of their work.');
   for(const selector of ['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'])await expect(page.locator(selector)).toHaveAttribute('content',description);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content','summary_large_image');
   for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/og-familiar-v2.jpg');
