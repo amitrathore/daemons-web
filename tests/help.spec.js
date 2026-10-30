@@ -28,7 +28,7 @@ test('home explains daemon versus task and the four steps on desktop and mobile'
   await fixture(page);await page.goto('/');
   await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).not.toBeVisible();await page.getByText('Getting started',{exact:true}).click();await expect(page.getByRole('heading',{name:'How Daemons.ai works'})).toBeVisible();
   await expect(page.locator('.steps li')).toHaveCount(4);
-  await expect(page.getByText('A Daemon is a reusable set of instructions for an agent.',{exact:false})).toBeVisible();
+  await expect(page.getByText('A Daemon keeps a thread of responsibility together:',{exact:false})).toBeVisible();
   await page.screenshot({path:'test-results/inline-help-home-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

@@ -6,13 +6,13 @@ at https://app.daemons.ai, deployed on Fly in `daemons-console`.
 The marketing page explains the shipped product and uses a labeled illustration
 with fictional task data. Its preview makes no authenticated API calls.
 
-The homepage leads with “Give your agents a soul. Stay in control of their work.”
+The homepage leads with “Give your assistants a soul. Stay in control of their work.”
 It defines a Daemon as a persistent home for a thread of responsibility and explains
 continuity across assistants: ongoing responsibilities,
 saved plans and decisions, and a shared work queue. Business follow-ups, a home
 renovation, and a community event illustrate successive assignments rather than
 one-off prompts. These are configurable examples, not built-in integrations or
-automatic scheduling. The existing “Give your agents a soul” artwork remains consistent with the
+automatic scheduling. The existing “Give your assistants a soul” artwork remains consistent with the
 headline. Assistant independence means approved access and continuity of the work;
 copy does not promise external-provider non-retention or deletion of data already received.
 

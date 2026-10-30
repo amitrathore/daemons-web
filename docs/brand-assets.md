@@ -32,3 +32,14 @@ Use case: logo-brand. Create an original premium brand mascot illustration for D
 Character reference: the generated transparent familiar.
 
 Use case: ads-marketing. Create a 1200x630 (1.905:1) polished Open Graph brand card for Daemons.ai. Use the provided image as the character reference: preserve its friendly lavender soul-star silhouette, expressive eyes, confident smile, pearlescent material, and mint orbit. New composition: warm ivory #FFF9F3 background with a large soft pale mint organic shape and a pale peach accent behind the character on the right. A warm, playful, premium creative software brand for teens and adults. Left typography: very large dark ink #241D35 bold rounded modern sans-serif headline exactly "Give your agents a soul." across 3 balanced lines, with "soul." saturated violet #6D35E8. Top-left small exact wordmark "Daemons.ai" with a simplified tiny lavender familiar icon. Bottom-left exact tagline "Purpose. Memory. Continuity." Generous negative space and a 70px safe inset for all text. The character looks welcoming, floating beside the headline, entire silhouette inside frame. Clear strong letterforms, excellent thumbnail readability. No additional text, no mockup UI, no sci-fi lighting, no space/cosmos, no black background, no watermark. Produce a complete final social card including accurate text.
+
+## Assistant headline refresh (v3)
+
+The current social card is `assets/og-assistants-v3.jpg` (1200 × 630). The
+mascot, favicon, and palette remain unchanged. Prior v1/v2 artwork is retained as
+historical source material; public metadata now points to v3 to refresh caches.
+
+Built-in imagegen edit: replace only the social-card headline with “Give your
+assistants a soul.” Preserve the ivory backdrop, mint/peach shapes, lavender
+pearlescent smiling soul-star, mint orbit, Daemons.ai wordmark, and “Purpose.
+Memory. Continuity.” tagline. Reflow the longer headline to fit safely on the left.
