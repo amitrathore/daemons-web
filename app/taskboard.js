@@ -1,3 +1,4 @@
+import {checkInText} from './execution.js';
 const relative=value=>{const m=Math.max(0,Math.floor((Date.now()-new Date(value))/60000));return m<1?'Just now':m<60?m+'m ago':m<1440?Math.floor(m/60)+'h ago':Math.floor(m/1440)+'d ago';};
 // TaskBoard Protocol client. Poll only the board; preserve the surrounding editor state.
 let cleanup=()=>{};
@@ -23,7 +24,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
       const more=section.querySelector('[data-more]');more.hidden=!board.columns[col].next_cursor;
       for(const w of items){
         let card=existing.get(w.id);
-        if(!card){card=document.createElement('article');card.className='board-card';card.dataset.cardId=w.id;card.innerHTML=`<details data-card="${w.id}"><summary><span class="board-card-title"></span><span class="board-card-status"></span><span class="board-card-meta"></span><span class="board-card-progress"></span></summary><dialog class="task-drawer" aria-label="Task details"><div class="drawer-top"><h2>Task details</h2><button type="button" class="secondary" data-close-task aria-label="Close task details">✕</button></div><div class="board-detail"></div><div class="board-order actions" aria-label="Queue position"></div></dialog></details>`;}
+        if(!card){card=document.createElement('article');card.className='board-card';card.dataset.cardId=w.id;card.innerHTML=`<details data-card="${w.id}"><summary><span class="board-card-title"></span><span class="board-card-status"></span><span class="board-card-meta"></span><span class="board-card-progress"></span><span class="board-card-check-in helper"></span></summary><dialog class="task-drawer" aria-label="Task details"><div class="drawer-top"><h2>Task details</h2><button type="button" class="secondary" data-close-task aria-label="Close task details">✕</button></div><div class="board-detail"></div><div class="board-order actions" aria-label="Queue position"></div></dialog></details>`;}
         if(holder.children[items.indexOf(w)]!==card){
           const before=holder.children[items.indexOf(w)]||null;
           if(typeof holder.moveBefore==='function'&&card.isConnected)holder.moveBefore(card,before);
@@ -39,6 +40,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
         card.querySelector('.board-card-title').textContent=w.title||'Task';
         card.querySelector('.board-card-status').textContent=`${col==='queued'?`#${w.queue_position} · `:''}${status[w.status]||w.status}${w.cancel_requested&&w.status==='working'?' · Stop requested':''}`;
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?relative(w.updated_at):''}`;
+        card.querySelector('.board-card-check-in').textContent=checkInText(w);
         card.querySelector('.board-card-progress').textContent=col==='working'?(w.progress||''):'';
         card.querySelector('.board-order').innerHTML=col==='queued'?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
       }
@@ -91,10 +93,11 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
     if(b.dataset.more){pageDepth[b.dataset.more]++;await refresh();return;}
     if(b.dataset.events){const cached=activityCache.get(b.dataset.events);const r=await api(`work/${b.dataset.events}/activity?cursor=${encodeURIComponent(cached.next_cursor)}`);b.previousElementSibling.insertAdjacentHTML('beforeend',r.items.map(x=>`<div class="list-row">${esc(x.type)} ${x.type==='work.progress'?resultView(x.data.report):''}</div>`).join(''));activityCache.set(b.dataset.events,r);b.hidden=!r.next_cursor;return;}
     if(!b.dataset.move&&!b.dataset.work&&!b.dataset.archive)return;
+    if(b.dataset.action==='end-attempt'&&!window.confirm('This prevents further reports from this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.'))return;
     b.disabled=true;
     try{
       if(b.dataset.move){const w=state.columns.queued.items.find(w=>w.id===b.closest('[data-card-id]').dataset.cardId);const before={top:state.first_queued_id,up:w.previous_id,down:w.after_next_id,end:undefined}[b.dataset.move];await post(`daemons/${id}/work-order`,{work_id:w.id,before_work_id:before||undefined,expected_queue_revision:state.queue_revision},{'Idempotency-Key':crypto.randomUUID()});}
-      if(b.dataset.work){await post(`work/${b.dataset.work}/${b.dataset.action}`);if(b.dataset.action==='retry')notify('Task queued again. Your assistant must pick it up to start a new attempt.');}
+      if(b.dataset.work){await post(`work/${b.dataset.work}/${b.dataset.action}`,b.dataset.action==='end-attempt'?{attempt_id:b.dataset.attemptId}:{},b.dataset.action==='end-attempt'?{'Idempotency-Key':crypto.randomUUID()}:{});if(b.dataset.action==='end-attempt')notify('Attempt ended. Review what happened before trying again.');if(b.dataset.action==='retry')notify('Task queued again. Your assistant must pick it up to start a new attempt.');}
       if(b.dataset.archive)await post(`daemons/${id}/work-archive`,{work_id:b.dataset.archive},{'Idempotency-Key':crypto.randomUUID()});
     }catch(err){notify(err.message);}
     finally{b.disabled=false;await refresh();}
