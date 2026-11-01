@@ -7,8 +7,8 @@ const options=(items,esc)=>items.map(x=>`<option value="${esc(x.id||x.account_id
 export async function workspacePicker({api,session,esc,selected,onChange}){
  if(!session.collaboration_enabled)return {items:[]};
  const data=await api('workspaces'),items=data.items;
- const container=document.createElement('div');container.className='workspace-picker';container.innerHTML=`<label>Workspace<select aria-label="Workspace">${items.map(w=>`<option value="${esc(w.id)}">${esc(w.kind==='personal'&&w.id===session.account.id?'Personal':w.kind==='personal'?'Shared personal '+w.id.slice(0,8):w.name)}</option>`).join('')}</select></label><a href="/workspaces">Manage workspaces</a>`;
- document.querySelector('header').after(container);const select=container.querySelector('select');select.value=items.some(w=>w.id===selected)?selected:session.account.id;
+ const container=document.createElement('div');container.className='workspace-picker';container.innerHTML=`<label><span class="workspace-label">Workspace</span><select aria-label="Workspace">${items.map(w=>`<option value="${esc(w.id)}">${esc(w.kind==='personal'&&w.id===session.account.id?'Personal':w.kind==='personal'?'Shared personal '+w.id.slice(0,8):w.name)}</option>`).join('')}</select></label><a href="/workspaces" aria-label="Manage workspaces" title="Manage workspaces">Manage</a>`;
+ document.querySelector('#account').before(container);const select=container.querySelector('select');select.value=items.some(w=>w.id===selected)?selected:session.account.id;
  select.onchange=()=>onChange(select.value);return {items,current:select.value};
 }
 const explainRoles='<p class="helper">Viewer: read shared work. Operator: organize tasks and contribute memory. Editor: publish instructions and curate memory. Manager: sharing, executor approvals, and execution settings. Org owners and admins manage all Org Daemons.</p>';
