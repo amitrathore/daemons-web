@@ -45,11 +45,19 @@ test('sharing explains history, confirms accepting identity and separately appro
 });
 test('Viewer reads shared published instructions and sees no mutation controls',async({page})=>{
  await fixture(page,'viewer');await page.goto(`/daemons/${id}`);await expect(page.getByRole('heading',{name:'Shared research',exact:true})).toBeVisible();
- await expect(page.getByRole('button',{name:'Add a task',exact:true})).toBeHidden();await expect(page.getByRole('link',{name:'Edit instructions',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Customize Daemon appearance',exact:true})).toBeHidden();await expect(page.locator('.pickup-summary')).toBeHidden();await expect(page.getByRole('button',{name:'Add a task',exact:true})).toBeHidden();await expect(page.getByRole('link',{name:'Edit instructions',exact:true})).toHaveCount(0);
  await page.getByRole('link',{name:'Memory',exact:true}).click();await expect(page.locator('#memory-editor')).toBeHidden();
  await page.getByRole('link',{name:'Settings',exact:true}).click();await expect(page.getByRole('button',{name:'Create invitation link'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Create a copy',exact:true})).toBeVisible();
 });
 test('invitation token is removed from the URL and acceptance waits for confirmation',async({page})=>{
  const state=await fixture(page);await page.goto('/invite#test-invite-token');await expect(page).toHaveURL(/\/invite$/);await expect(page.getByText('You will have no access until they confirm your identity.',{exact:false})).toBeVisible();
  await page.getByRole('button',{name:'Submit my identity'}).click();await expect(page.locator('#accept-state')).toContainText('Waiting for the inviter');expect(state.claimed).toBe(true);
+});
+
+test('Org guests do not see a create action and direct creation explains the boundary',async({page})=>{
+ await fixture(page,'viewer');
+ await page.route('https://api.daemons.ai/v1/workspaces',route=>route.fulfill({json:{items:[{id:user,name:'Personal',kind:'personal',role:'owner'},{id:org,name:'Founders',kind:'org',role:'guest'}]}}));
+ await page.goto('/');await page.getByLabel('Workspace',{exact:true}).selectOption(org);
+ await expect(page.getByRole('link',{name:'+ Create a Daemon',exact:true})).toHaveCount(0);
+ await page.goto('/new');await expect(page.getByText('Guests cannot create Daemons in this workspace. Choose Personal to create your own.',{exact:true})).toBeVisible();
 });
