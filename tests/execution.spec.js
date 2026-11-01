@@ -42,13 +42,12 @@ test('check-in choices save, persist, explain unlimited work, and conflicts requ
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:'test-results/execution-settings-mobile.png',fullPage:true});
 });
-test('end requires confirmation, rejects future results in UI, and retry remains separate',async({page})=>{
+test('end requires inline confirmation and retry remains separate',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
  await expect(page.locator('.board-card-check-in')).toContainText('No automatic expiry');
  await page.locator('[data-card="work1"] > summary').click();await expect(page.getByRole('dialog',{name:'Task details'})).toBeVisible();
  await expect(page.getByRole('dialog')).toContainText('Last check-in');
- page.once('dialog',dialog=>dialog.dismiss());await page.getByRole('button',{name:'End this attempt',exact:true}).click();expect(state.ends).toBe(0);
- page.once('dialog',async dialog=>{expect(dialog.message()).toContain('may still be working outside Daemons.ai');await dialog.accept();});
- await page.getByRole('button',{name:'End this attempt',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('You ended this attempt');expect(state.ends).toBe(1);expect(state.retries).toBe(0);
+ await page.getByRole('button',{name:'End this attempt',exact:true}).click();await expect(page.getByRole('group',{name:'End this attempt?'})).toContainText('may still be working outside Daemons.ai');await page.getByRole('button',{name:'Keep attempt running'}).click();expect(state.ends).toBe(0);
+ await page.getByRole('button',{name:'End this attempt',exact:true}).click();await page.getByRole('button',{name:'End attempt and require review'}).click();await expect(page.getByRole('dialog')).toContainText('You ended this attempt');expect(state.ends).toBe(1);expect(state.retries).toBe(0);
  await page.getByRole('button',{name:'Try task again'}).click();await expect(page.locator('[data-column="queued"] [data-card-id="work1"]')).toBeVisible();expect(state.retries).toBe(1);
 });

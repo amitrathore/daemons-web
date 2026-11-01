@@ -89,11 +89,16 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
   root.addEventListener('click',safe(async e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.hasAttribute('data-close-task')){b.closest('dialog').close();return;}
+    if(b.hasAttribute('data-dismiss-end')){const box=b.closest('[data-end-confirm]'),task=box.closest('[data-card-id]');box.remove();task.querySelector('[data-action="end-attempt"]')?.focus();return;}
     if(b.id==='refresh'){await refresh();return;}
     if(b.dataset.more){pageDepth[b.dataset.more]++;await refresh();return;}
     if(b.dataset.events){const cached=activityCache.get(b.dataset.events);const r=await api(`work/${b.dataset.events}/activity?cursor=${encodeURIComponent(cached.next_cursor)}`);b.previousElementSibling.insertAdjacentHTML('beforeend',r.items.map(x=>`<div class="list-row">${esc(x.type)} ${x.type==='work.progress'?resultView(x.data.report):''}</div>`).join(''));activityCache.set(b.dataset.events,r);b.hidden=!r.next_cursor;return;}
     if(!b.dataset.move&&!b.dataset.work&&!b.dataset.archive)return;
-    if(b.dataset.action==='end-attempt'&&!window.confirm('This prevents further reports from this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.'))return;
+    if(b.dataset.action==='end-attempt'&&!b.hasAttribute('data-confirmed-end')){
+      const container=b.closest('.board-detail');let box=container.querySelector('[data-end-confirm]');
+      if(!box){box=document.createElement('section');box.className='callout';box.setAttribute('data-end-confirm','');box.setAttribute('role','group');box.setAttribute('aria-label','End this attempt?');box.innerHTML=`<h3>End this attempt?</h3><p>This prevents further reports from this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p><div class="actions"><button class="secondary" data-dismiss-end>Keep attempt running</button><button data-confirmed-end data-work="${esc(b.dataset.work)}" data-attempt-id="${esc(b.dataset.attemptId)}" data-action="end-attempt">End attempt and require review</button></div>`;b.closest('.actions').after(box);}
+      box.querySelector('[data-dismiss-end]').focus();return;
+    }
     b.disabled=true;
     try{
       if(b.dataset.move){const w=state.columns.queued.items.find(w=>w.id===b.closest('[data-card-id]').dataset.cardId);const before={top:state.first_queued_id,up:w.previous_id,down:w.after_next_id,end:undefined}[b.dataset.move];await post(`daemons/${id}/work-order`,{work_id:w.id,before_work_id:before||undefined,expected_queue_revision:state.queue_revision},{'Idempotency-Key':crypto.randomUUID()});}
