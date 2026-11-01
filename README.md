@@ -94,3 +94,21 @@ Review any external effects before choosing Try task again.
 
 Deploy the matching API migration and replace every old API instance before
 releasing these controls. The service repository documents migration and rollback.
+
+## Shared Daemons (private collaboration pilot)
+
+When the API reports collaboration_enabled, the console shows a Personal/Org
+workspace picker and Org administration under Manage workspaces. Teams are
+optional. Daemon Settings → Shared responsibility manages roles, invitation
+links, leads, and separate assistant approvals. Copy creates a clean unpublished
+draft; Move to Org explicitly moves existing history and clears old approvals.
+
+Invitations require sign-in, single-use acceptance, and inviter confirmation of
+the accepting identity. The secret lives only in the link fragment and is removed
+on acceptance-page load. Log in in a separate tab if necessary, then return to
+the original invitation. The console does not send invitation email. Viewer
+controls are read-only; Operator memory remains unconfirmed. Server-side role and
+scope checks remain authoritative even if a control is manipulated locally.
+
+Deploy the migration/API fully before this console. Collaboration defaults off;
+the API's operations guide describes enabling and verifying a private pilot.

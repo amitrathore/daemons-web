@@ -3,7 +3,7 @@ const relative=value=>{const m=Math.max(0,Math.floor((Date.now()-new Date(value)
 // TaskBoard Protocol client. Poll only the board; preserve the surrounding editor state.
 let cleanup=()=>{};
 export const disposeBoard=()=>cleanup();
-export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView,onUpdate}) {
+export function mountBoard({canOperate=true,id,initial,api,post,notify,esc,renderTask,resultView,onUpdate}) {
   disposeBoard();
   const root=document.querySelector('#tasks'), grid=root.querySelector('.task-board');
   const labels={queued:'Queued',working:'In progress',attention:'Needs attention',finished:'Finished'};
@@ -42,7 +42,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?relative(w.updated_at):''}`;
         card.querySelector('.board-card-check-in').textContent=checkInText(w);
         card.querySelector('.board-card-progress').textContent=col==='working'?(w.progress||''):'';
-        card.querySelector('.board-order').innerHTML=col==='queued'?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
+        card.querySelector('.board-order').innerHTML=col==='queued'&&canOperate?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
       }
 
     }
@@ -60,7 +60,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
     if(dead||!card.isConnected)return;
     const open=[...container.querySelectorAll('details[open]')].map(d=>d.querySelector('summary')?.textContent);
     const eventHTML=events.items.map(e=>`<div class="list-row"><strong>${esc(e.type.replace('work.','').replaceAll('_',' '))}</strong><p class="helper">${esc(new Date(e.created_at).toLocaleString())}</p>${e.type==='work.progress'?resultView(e.data.report):''}</div>`).join('');
-    const html=renderTask(w)+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${['succeeded','cancelled'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
+    const html=renderTask(w)+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${canOperate&&['succeeded','cancelled'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
     // Rebuild only when the task changed; keep nested expansions on refresh.
     container.innerHTML=html;for(const d of container.querySelectorAll('details'))if(open.includes(d.querySelector('summary')?.textContent))d.open=true;
     detailsCache.set(taskId,{updated:card.dataset.updated,html});activityCache.set(taskId,events);
