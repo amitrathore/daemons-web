@@ -10,8 +10,8 @@ export function mountExecution({root,id,d,api,notify}){
  const form=root.querySelector('form'),select=form.elements.interval,note=root.querySelector('[data-no-expiry]'),status=root.querySelector('[data-execution-state]');
  let revision=d.execution_revision??0;
  const paint=value=>{select.value=value===null?'none':String(value??120);note.hidden=select.value!=='none';};paint(d.check_in_minutes);
- select.addEventListener('change',()=>{note.hidden=select.value!=='none';});
+ select.addEventListener('change',()=>{note.hidden=select.value!=='none';status.textContent='Unsaved changes.';});
  const load=async()=>{const settings=await api(`daemons/${id}/execution-settings`);revision=settings.revision;paint(settings.check_in_minutes);};
  root.querySelector('[data-refresh-execution]').addEventListener('click',async()=>{try{await load();status.textContent='Settings refreshed.';}catch(e){status.textContent=e.message;}});
- form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button');button.disabled=true;try{const result=await api(`daemons/${id}/execution-settings`,{method:'PUT',body:JSON.stringify({revision,check_in_minutes:select.value==='none'?null:Number(select.value)})});revision=result.revision;paint(result.check_in_minutes);status.textContent='Saved. This applies to new attempts.';}catch(e){status.textContent=e.message;notify(e.message);}finally{button.disabled=false;}});
+ form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button');button.disabled=true;status.textContent='Saving…';try{const result=await api(`daemons/${id}/execution-settings`,{method:'PUT',body:JSON.stringify({revision,check_in_minutes:select.value==='none'?null:Number(select.value)})});revision=result.revision;paint(result.check_in_minutes);status.textContent='Saved. This applies to new attempts.';}catch(e){status.textContent=e.message;notify(e.message);}finally{button.disabled=false;}});
 }

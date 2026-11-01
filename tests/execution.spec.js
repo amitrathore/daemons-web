@@ -33,10 +33,10 @@ test('check-in choices save, persist, explain unlimited work, and conflicts requ
  const select=page.getByLabel('Assistant check-in interval');await expect(select).toHaveValue('120');
  await expect(page.getByText('Tasks can take longer.',{exact:false})).toBeVisible();
  for(const value of ['30','480','none']){
-  await select.selectOption(value);if(value==='none')await expect(page.getByText('Disconnected assistants do not expire automatically.',{exact:false})).toBeVisible();
+  await select.selectOption(value);await expect(page.locator('[data-execution-state]')).toHaveText('Unsaved changes.');if(value==='none')await expect(page.getByText('Disconnected assistants do not expire automatically.',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Save execution settings'}).click();await expect(page.getByText('Saved. This applies to new attempts.')).toBeVisible();
  }
- expect(state.minutes).toBe(null);await page.reload();await expect(select).toHaveValue('none');
+ await expect.poll(()=>state.minutes).toBe(null);await page.reload();await expect(select).toHaveValue('none');
  state.conflict=true;await select.selectOption('120');await page.getByRole('button',{name:'Save execution settings'}).click();await expect(page.locator('[data-execution-state]')).toContainText('Refresh before saving');expect(state.puts).toBe(4);
  await page.getByRole('button',{name:'Refresh settings',exact:true}).click();await expect(select).toHaveValue('none');
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
