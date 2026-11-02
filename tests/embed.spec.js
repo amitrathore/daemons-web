@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 const daemon='33333333-3333-4333-8333-333333333333',connection='44444444-4444-4444-8444-444444444444';
 async function host(page,{viewer=false}={}){
  await page.route('**/embed/v1?**',async route=>route.fulfill({contentType:'text/html',body:await readFile('app/embed/v1.html','utf8')}));
- await page.route('**/embed-test',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><html><body><h1>Comic remains visible</h1><intergraph-daemons label="Work with test Daemon"></intergraph-daemons><script type="module">
+ await page.route('**/embed-test',route=>route.fulfill({contentType:'text/html',headers:{'Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; frame-src 'self'"},body:`<!doctype html><html><body><h1>Comic remains visible</h1><intergraph-daemons label="Work with test Daemon"></intergraph-daemons><script type="module">
  import '/embed/component-v1.js';
  window.calls=[];let tasks=[];const panel=document.querySelector('intergraph-daemons');
  panel.contextProvider=()=>({title:'Reviewed strip',url:location.origin+'/comic',text:'An alternative ending.'});
@@ -17,6 +17,7 @@ async function host(page,{viewer=false}={}){
 }
 test('Game component attaches reviewed context, submits once and shows task results',async({page})=>{
  const panel=await host(page);await expect(panel.getByLabel('Daemon',{exact:true})).toContainText('Test Daemon');
+ const drawer=await page.getByRole('dialog').boundingBox();expect(drawer.width).toBeGreaterThan(450);expect(drawer.height).toBeGreaterThan(600);
  await panel.getByLabel('New task').fill('Explore an ending');expect(await page.evaluate(()=>calls.filter(c=>c.args.operation==='submit').length)).toBe(0);
  await panel.getByRole('button',{name:'Attach page context'}).click();await expect(panel.locator('#preview')).toContainText('An alternative ending.');
  await panel.getByRole('button',{name:'Submit task',exact:true}).click();await expect(panel.getByText('Explore an ending',{exact:true})).toBeVisible();

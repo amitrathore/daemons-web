@@ -119,7 +119,7 @@ The console also serves `/embed/v1`, a dedicated human-facing tasks/results pane
 and `/embed/component-v1.js`, a framework-independent Game component. Only the
 embed page may be framed, and only by a registered Game's exact origin; the full
 console and login retain framing protection. The Game installs a pinned local
-copy of the component and the matching Ring adapter from daemons.ai/sdk/clojure.
+copy of the component and its adjacent component-v1.css stylesheet and the matching Ring adapter from daemons.ai/sdk/clojure.
 The frame receives data through a fixed source/origin/nonce-bound message channel;
 Game credentials and Intergraph tokens never enter it. It does not use third-party
 cookies. Games supply reviewed, opt-in context through contextProvider.
