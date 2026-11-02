@@ -43,11 +43,12 @@ test('mobile panel fits the viewport and failed submission preserves draft and r
 test('Game consent explicitly selects Daemons and capabilities without executor authorization',async({page})=>{
  let approved;
  await page.route('https://api.daemons.ai/v1/**',async route=>{const req=route.request(),path=new URL(req.url()).pathname.slice(4);let result=[];
- if(path==='session')result={account:{id:daemon,email:'person@example.test'},csrf:'csrf',embed_enabled:true};
+ if(path==='session')result={account:{id:daemon,email:'person@example.test'},csrf:'csrf',embed_enabled:true,collaboration_enabled:true};
+ else if(path==='workspaces')result={items:[{id:daemon,kind:'personal',name:'Personal',role:'owner'}]};
  else if(path==='game-connections/request/request1'){
   if(req.method()==='GET')result={id:'request1',game_name:'OVERHEAD',origin:'https://overhead.im'};
   else{expect(req.headers()['x-csrf-token']).toBe('csrf');approved=req.postDataJSON();result={redirect_to:'/game-connected'};}
- }else if(path==='daemons')result=[{id:daemon,draft:{name:'I.M. Overhead'},access_role:'operator'}];
+ }else if(path==='daemons'){expect(new URL(req.url()).searchParams.getAll('workspace_id')).toEqual([daemon]);result=[{id:daemon,draft:{name:'I.M. Overhead'},access_role:'operator'}];}
  await route.fulfill({json:result});});
  await page.goto('/connect-game?request=request1');await expect(page.getByRole('heading',{name:'Connect OVERHEAD to your Daemons'})).toBeVisible();
  await expect(page.getByText('including existing task history.',{exact:false})).toBeVisible();

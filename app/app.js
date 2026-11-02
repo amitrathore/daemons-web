@@ -19,7 +19,7 @@ const newKey = () => crypto.randomUUID();
 async function api(path, options={}) {
   const headers = {'Content-Type':'application/json', ...options.headers};
   if (options.method && options.method !== 'GET') headers['X-CSRF-Token'] = session?.csrf || '';
-  if(session?.collaboration_enabled&&currentWorkspace&&(/^(daemons|control-room|connections)(\?|$)/.test(path)||/^connections\//.test(path)))path+=(path.includes('?')?'&':'?')+'workspace_id='+encodeURIComponent(currentWorkspace);
+  if(session?.collaboration_enabled&&currentWorkspace&&!new URLSearchParams(path.split('?')[1]||'').has('workspace_id')&&(/^(daemons|control-room|connections)(\?|$)/.test(path)||/^connections\//.test(path)))path+=(path.includes('?')?'&':'?')+'workspace_id='+encodeURIComponent(currentWorkspace);
   const response = await fetch(`${API}/v1/${path}`, {...options, headers, credentials:'include'});
   let data; try { data = await response.json(); } catch { throw new Error('We couldn’t read the response. Please try again.'); }
   if (!response.ok) { if(response.status === 401) login(); throw new Error(data.error || 'Please try again.'); }
