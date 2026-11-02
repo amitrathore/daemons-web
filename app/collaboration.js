@@ -13,6 +13,7 @@ export async function workspacePicker({api,session,esc,selected,onChange}){
 }
 const explainRoles='<p class="helper">Viewer: read shared work. Operator: organize tasks and contribute memory. Editor: publish instructions and curate memory. Manager: sharing, executor approvals, and execution settings. Org owners and admins manage all Org Daemons.</p>';
 export async function workspacePage({main,api,esc,notify,session,id}){
+ main.classList.add('workspace-page');
  const request=async(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
  if(!id){
   const {items}=await api('workspaces');main.innerHTML=`<h1>Your workspaces</h1><p>Keep personal responsibilities separate from company work. Teams are optional groups inside an Org.</p><div class="grid">${items.map(w=>`<section class="panel"><h2>${esc(w.name)}</h2><p>${esc(w.kind)} · ${esc(w.role)}</p>${['owner','admin'].includes(w.role)&&w.kind==='org'?`<a href="/workspaces/${esc(w.id)}">Manage members and Teams</a>`:'<p class="helper">Open shared Daemons using the workspace picker.</p>'}</section>`).join('')}</div><section class="panel"><h2>Create an Org</h2><form id="create-org"><label>Org name<input name="name" maxlength="100" required></label><button>Create Org</button></form></section>`;
