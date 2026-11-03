@@ -31,15 +31,15 @@ async function fixture(page){
 }
 test('check-in choices save, persist, explain unlimited work, and conflicts require refresh',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}#settings`);
- const select=page.getByLabel('Assistant check-in interval');await expect(select).toHaveValue('120');
- await expect(page.getByText('Tasks can take longer.',{exact:false})).toBeVisible();
+ const select=page.getByLabel('How long to wait for progress');await expect(select).toHaveValue('120');
+ await expect(page.getByText('It is not a limit on how long the task can take.',{exact:false})).toBeVisible();
  for(const value of ['30','480','none']){
-  await select.selectOption(value);await expect(page.locator('[data-execution-state]')).toHaveText('Unsaved changes.');if(value==='none')await expect(page.getByText('Disconnected assistants do not expire automatically.',{exact:false})).toBeVisible();
-  await page.getByRole('button',{name:'Save execution settings'}).click();await expect(page.getByText('Saved. This applies to new attempts.')).toBeVisible();
+  await select.selectOption(value);await expect(page.locator('[data-execution-state]')).toHaveText('Unsaved changes.');if(value==='none')await expect(page.getByText('A task will stay in progress until the assistant reports a result or you end its attempt.',{exact:false})).toBeVisible();
+  await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.getByText('Saved. This applies to new attempts.')).toBeVisible();
  }
  await expect.poll(()=>state.minutes).toBe(null);await page.reload();await expect(select).toHaveValue('none');
- state.conflict=true;await select.selectOption('120');await page.getByRole('button',{name:'Save execution settings'}).click();await expect(page.locator('[data-execution-state]')).toContainText('Refresh before saving');expect(state.puts).toBe(4);
- await page.getByRole('button',{name:'Refresh settings',exact:true}).click();await expect(select).toHaveValue('none');
+ state.conflict=true;await select.selectOption('120');await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.locator('[data-execution-state]')).toContainText('Refresh before saving');expect(state.puts).toBe(4);
+ await page.locator('#execution-settings [data-refresh-execution]').click();await expect(select).toHaveValue('none');
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:'test-results/execution-settings-mobile.png',fullPage:true});
 });

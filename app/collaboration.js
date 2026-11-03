@@ -40,7 +40,7 @@ export async function invitationPage({main,api,esc,notify,session}){
 }
 export async function mountSharing({root,id,d,api,esc,notify,session,workspaces}){
  if(!session.collaboration_enabled)return;
- root.innerHTML=`<section class="panel"><h2>Shared responsibility</h2><p>Workspace: ${esc(workspaces.find(w=>w.id===d.workspace_id)?.name||'Personal')} · Your role: ${esc(d.access_role||'manager')} · Lead: ${esc(d.lead_name||d.lead_id||'Unassigned')}</p><p>${historyWarning}</p><button class="secondary" id="copy-daemon">Create a copy</button><label>Copy into<select id="copy-workspace">${options(workspaces.filter(w=>w.id===session.account.id||['owner','admin','member'].includes(w.role)),esc)}</select></label><div id="sharing-manage"></div></section>`;
+ root.innerHTML=`<p>Workspace: ${esc(workspaces.find(w=>w.id===d.workspace_id)?.name||'Personal')} · Your role: ${esc(d.access_role||'manager')} · Lead: ${esc(d.lead_name||d.lead_id||'Unassigned')}</p><p>${historyWarning}</p><button class="secondary" id="copy-daemon">Create a copy</button><label>Copy into<select id="copy-workspace">${options(workspaces.filter(w=>w.id===session.account.id||['owner','admin','member'].includes(w.role)),esc)}</select></label><div id="sharing-manage"></div>`;
  root.querySelector('#copy-daemon').onclick=safe(notify,async()=>{const copy=await api(`daemons/${id}/copy`,{method:'POST',body:JSON.stringify({workspace_id:root.querySelector('#copy-workspace').value})});location.assign(`/daemons/${copy.id}/edit`);});
  if(!can(d,'manager'))return;
  const state=await api(`daemons/${id}/sharing`),target=root.querySelector('#sharing-manage');

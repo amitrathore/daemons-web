@@ -34,7 +34,7 @@ test('workspace selection is explicit and Org settings are reachable',async({pag
  await page.getByRole('link',{name:'Manage workspaces'}).click();await page.getByRole('link',{name:'Manage members and Teams'}).click();await expect(page.getByRole('heading',{name:'Founders'})).toBeVisible();
 });
 test('sharing explains history, confirms accepting identity and separately approves executors',async({page})=>{
- const state=await fixture(page);await page.goto(`/daemons/${id}#settings`);
+ const state=await fixture(page);await page.goto(`/daemons/${id}#sharing`);
  await expect(page.getByLabel('Workspace',{exact:true})).toHaveValue(org);
  await expect(page.getByText('Assistant connections and personal tool credentials are not shared.',{exact:false})).toBeVisible();
  const form=page.locator('#daemon-invite');await form.locator('[name=role]').selectOption('operator');await form.locator('[name=history]').check();await form.getByRole('button',{name:'Create invitation link'}).click();
@@ -48,7 +48,7 @@ test('Viewer reads shared published instructions and sees no mutation controls',
  await fixture(page,'viewer');await page.goto(`/daemons/${id}`);await expect(page.getByRole('heading',{name:'Shared research',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Customize Daemon appearance',exact:true})).toBeHidden();await expect(page.locator('.pickup-summary')).toBeHidden();await expect(page.getByRole('button',{name:'Add a task',exact:true})).toBeHidden();await expect(page.getByRole('link',{name:'Edit instructions',exact:true})).toHaveCount(0);
  await page.getByRole('link',{name:'Memory',exact:true}).click();await expect(page.locator('#memory-editor')).toBeHidden();
- await page.getByRole('link',{name:'Settings',exact:true}).click();await expect(page.getByRole('button',{name:'Create invitation link'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Create a copy',exact:true})).toBeVisible();
+ await page.getByRole('link',{name:'Settings',exact:true}).click();await page.locator('#sharing-section > summary').click();await expect(page.getByRole('button',{name:'Create invitation link'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Create a copy',exact:true})).toBeVisible();
 });
 test('invitation token is removed from the URL and acceptance waits for confirmation',async({page})=>{
  const state=await fixture(page);await page.goto('/invite#test-invite-token');await expect(page).toHaveURL(/\/invite$/);await expect(page.getByText('You will have no access until they confirm your identity.',{exact:false})).toBeVisible();

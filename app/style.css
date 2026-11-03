@@ -183,3 +183,13 @@ dialog{color:var(--text);background:var(--surface);border:1px solid var(--line);
 .discovery-policy{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,1fr) auto;align-items:end;gap:1rem}
 .discovery-policy label{margin:0}
 @media(max-width:700px){.discovery-policy{grid-template-columns:1fr}.discovery-policy button{width:100%}}
+
+/* Daemon settings are grouped by the choice they control; secondary history stays tucked away. */
+.settings-intro{margin:0 0 1.25rem}.settings-intro h2{font-size:1.25rem;margin:0 0 .25rem}.settings-intro p{margin:.2rem 0;font-size:14px}
+.settings-section{padding:1.25rem!important;margin:0 0 1rem!important}.settings-section>h3{font-size:1rem;margin:0 0 .25rem}.settings-section>.helper{margin:.25rem 0 1rem;font-size:13px}
+.settings-card{padding:1rem 1.1rem;margin:.8rem 0 0;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft)}.settings-card h4{margin:0 0 .35rem}.settings-card>p{margin:.45rem 0;font-size:13px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 0}.setting-row h4{margin:0;font-size:14px}.setting-row .helper{margin:.2rem 0;font-size:13px}.setting-row #pause{flex-shrink:0}
+.settings-section.appearance-panel{margin-top:0!important}.sharing-settings{margin:0 0 1rem!important;padding:0!important;overflow:hidden}.sharing-settings>summary{display:flex;align-items:center;padding:1rem 1.25rem;cursor:pointer;list-style:none}.sharing-settings>summary::-webkit-details-marker{display:none}.sharing-settings>summary::after{content:'＋';margin-left:auto;color:var(--purple);font-size:1.2rem}.sharing-settings[open]>summary::after{content:'−'}.sharing-settings>summary strong,.sharing-settings>summary small{display:block}.sharing-settings>summary strong{font-size:15px}.sharing-settings>summary small{color:var(--muted);font-weight:400}.sharing-settings>#sharing-panel{padding:0 1.25rem 1.25rem}
+.task-activity{margin:1.25rem 0;padding:.7rem 1rem;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.task-activity>summary{font-size:13px;font-weight:700;cursor:pointer}.task-activity[open]>summary{border-bottom:1px solid var(--line);margin-bottom:.5rem}.task-activity .list-row{padding:.75rem 0}
+.settings-readonly{margin:0 0 1rem}
+@media(max-width:700px){.settings-section{padding:1rem!important}.setting-row{align-items:flex-start}.setting-row #pause{max-width:45%;white-space:normal}.sharing-settings>#sharing-panel{padding-inline:1rem}}
