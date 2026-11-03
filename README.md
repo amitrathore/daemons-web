@@ -112,3 +112,21 @@ scope checks remain authoritative even if a control is manipulated locally.
 
 Deploy the migration/API fully before this console. Collaboration defaults off;
 the API's operations guide describes enabling and verifying a private pilot.
+
+## Daemons Embed v1
+
+The console also serves `/embed/v1`, a dedicated human-facing tasks/results panel,
+and `/embed/component-v1.js`, a framework-independent Game component. Only the
+embed page may be framed, and only by a registered Game's exact origin; the full
+console and login retain framing protection. The Game installs a pinned local
+copy of the component and its adjacent component-v1.css stylesheet and the matching Ring adapter from daemons.ai/sdk/clojure.
+The frame receives data through a fixed source/origin/nonce-bound message channel;
+Game credentials and Intergraph tokens never enter it. It does not use third-party
+cookies. Games supply reviewed, opt-in context through contextProvider.
+
+`/connect-game?request=...` handles top-level consent, naming the requesting Game
+and selected Daemons. `/game-connections` lists and revokes human Game approvals,
+separately from assistant executor grants. All approval decisions are enforced
+server-side by Daemons. These routes appear when the API reports embed_enabled.
+See daemons.ai/docs/daemons-embed.md for registration, adapter installation,
+permissions, limits, pilot rollout, and verification. No npm artifact is published.

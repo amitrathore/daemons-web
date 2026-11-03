@@ -10,6 +10,7 @@ async function fixture(page){
  else if(p.endsWith('/label')){const id=p.split('/')[1],row=state.rows.find(r=>r.id===id),body=req.postDataJSON();state.writes.push({id,...body});expect(req.headers()['x-csrf-token']).toBe('csrf');if(state.fail)return route.fulfill({status:503,json:{error:'Could not save. Try again.'}});if(state.conflict){state.conflict=false;row.label='Other browser';row.label_revision++;return route.fulfill({status:409,json:{error:'This nickname changed. Review the saved label before trying again.'}});}expect(body.expected_revision).toBe(row.label_revision);row.label=body.label||null;row.label_revision++;data={id,label:row.label,label_revision:row.label_revision};}
  else if(p.startsWith('connections/')&&req.method()==='DELETE'){const id=p.split('/')[1];state.revokes.push(id);state.rows.find(r=>r.id===id).revoked=true;data={revoked:true};}
  else if(p.endsWith('/automatic-pickup'))data={published:true,connections:state.rows.map(r=>({connection_id:r.id,name:r.label||'Quincy',assistant_name:'Quincy',label:r.label,short_id:r.short_id,active:!r.revoked&&r.expires_at>'2026',enabled:false,revision:0}))};
+ else if(p.endsWith('/task-discovery'))data=[];
  else throw Error(p);await route.fulfill({json:data});});return state;
 }
 test('active connections sort by recent use, expired/revoked collapse below, and duplicate names have distinct IDs',async({page})=>{

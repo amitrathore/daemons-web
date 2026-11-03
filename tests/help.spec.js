@@ -9,6 +9,7 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
     let result;
     if(path.endsWith('/appearance'))result={icon:'spark',color:'violet',revision:0};
     else if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    else if(path.endsWith('/task-discovery'))result=[];
     else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
     else if(path==='control-room')result=[daemon];
     else if(path==='daemons')result=[daemon];

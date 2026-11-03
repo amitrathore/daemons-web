@@ -16,6 +16,7 @@ async function fixture(page,role='manager'){
   else if(path.endsWith('/board'))result=boardFixture([]);
   else if(path.endsWith('/versions')){expect(role).toBe('manager');result=[{revision:1,definition}];}
   else if(path.endsWith('/automatic-pickup'))result={published:true,connections:[]};
+  else if(path.endsWith('/task-discovery'))result=[];
   else if(path.endsWith('/sharing')){
    if(req.method()==='POST'){expect(body.revision).toBe(state.revision);state.revision++;if(body.operation==='executor')state.scopes=body.approved_scopes;}
    result={revision:state.revision,workspace_id:org,lead_id:user,access:[],members:[{account_id:user,email:'owner@example.test'}],teams:[],invitations:[{id:'invite1',status:'claimed',candidate_id:'colleague',candidate_email:'colleague@example.test',inviter_id:user,role:'operator',expires_at:'2099-01-01'}],executors:[{grant_id:'grant1',status:'pending',client_name:'Research assistant',authorizer_email:'colleague@example.test',scopes:['daemons:read','work:execute'],approved_scopes:state.scopes}]};

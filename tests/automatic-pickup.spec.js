@@ -20,6 +20,7 @@ async function fixture(page){
    }
    data={daemon_id:id,published:true,paused:state.paused,connections:[{connection_id:'c1',name:'My executor',active:true,enabled:state.enabled,revision:state.revision,last_checked_at:null,last_outcome:null}]};
   }
+  else if(path.endsWith('/task-discovery'))data=[];
   await route.fulfill({json:data});
  });return state;
 }
