@@ -20,6 +20,9 @@ test('corporate site explains the product, links to setup, and works across scre
   await expect(page.locator('#examples article')).toHaveCount(3);
   await expect(page.getByText('A Daemon is a thread of responsibility you carry forward.',{exact:false})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Your workflow. Your choice of assistants.',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Bring the right people and places into the work.',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Share a Daemon with people.',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Bring a Daemon into a participating Game.',exact:true})).toBeVisible();
   await expect(page.locator('#examples .example-sequence li')).toHaveCount(9);
   expect(await page.locator('#examples').evaluate(el=>Boolean(el.compareDocumentPosition(document.querySelector('#capabilities')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await expect(page.locator('.selected strong')).toHaveText('Community gathering');
@@ -45,6 +48,10 @@ test('corporate site explains the product, links to setup, and works across scre
   await expect(page.getByText('Daemons does not automatically schedule work or manage task dependencies.',{exact:false})).toBeVisible();
   await page.getByText('Can several assistants work with the same Daemon?',{exact:true}).click();
   await expect(page.locator('.faq').getByText('Authorize each assistant separately.',{exact:false})).toBeVisible();
+  await page.getByText('Can I share a Daemon with my team?',{exact:true}).click();
+  await expect(page.locator('.faq').getByText('Sharing a Daemon does not automatically approve their assistants.',{exact:false})).toBeVisible();
+  await page.getByText('Can I use my Daemon inside a Game?',{exact:true}).click();
+  await expect(page.locator('.faq').getByText('A separately authorized assistant performs the work.',{exact:false})).toBeVisible();
   await page.emulateMedia({reducedMotion:'reduce'});
   expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto');
   const links=await page.locator('a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
@@ -54,7 +61,7 @@ test('corporate site explains the product, links to setup, and works across scre
 });
 
 test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
-  const description='Keep instructions, memory, and tasks together. Choose which assistants contribute, and carry the work forward when tools change.';
+  const description='Keep instructions, memory, and tasks together. Share a Daemon with your team or use it in participating Games, with access you approve.';
   const assets={'/assets/og-ai-assistants-v4.jpg':'image/jpeg','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;
