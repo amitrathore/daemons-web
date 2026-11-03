@@ -11,6 +11,7 @@ async function fixture(page){
   else if(path===`daemons/${id}`)data={id,draft:definition,published_revision:1,revision:1,check_in_minutes:state.minutes,execution_revision:state.revision};
   else if(path.endsWith('/appearance'))data={icon:'spark',color:'violet',revision:0};
   else if(path.endsWith('/automatic-pickup'))data={published:true,connections:[]};
+  else if(path.endsWith('/task-discovery'))data=[];
   else if(path.endsWith('/execution-settings')){
    if(req.method()==='PUT'){
     state.puts++;expect(req.headers()['x-csrf-token']).toBe('token');const body=req.postDataJSON();

@@ -39,7 +39,7 @@ const permissionLabels = {
 };
 const statusLabels = {
   draft: 'Draft instructions', published: 'Instructions published', paused: 'Task starts paused',
-  queued: 'Waiting for an assistant', working: 'In progress', succeeded: 'Completed',
+  awaiting_approval: 'Needs approval', rejected: 'Dismissed', queued: 'Waiting for an assistant', working: 'In progress', succeeded: 'Completed',
   failed: 'Failed', cancelled: 'Cancelled', attention_required: 'Needs your review',
   authorized: 'Access approved', revoked: 'Access revoked', expired: 'Access expired',
 };
@@ -48,6 +48,7 @@ const activityLabels = {
   'daemon.published': 'Instructions published', 'daemon.paused': 'New task starts paused',
   'daemon.resumed': 'New task starts resumed', 'assistant.attached': 'Assistant ready to pick up tasks',
   'work.reordered': 'Queue order changed', 'work.archived': 'Finished task archived', 'work.attention_required': 'Task needs your review',
+  'work.discovered': 'Assistant proposed a follow-up', 'work.discovery_approved': 'Assistant proposal approved', 'work.discovery_dismissed': 'Assistant proposal dismissed',
   'work.submitted': 'Task added', 'work.claimed': 'Assistant picked up the task',
   'work.progress': 'Progress update', 'work.succeeded': 'Task completed',
   'work.failed': 'Assistant reported a problem', 'work.cancelled': 'Task cancelled',
@@ -114,6 +115,10 @@ function nextStep(d, work, connections) {
     title = 'A task needs your review';
     description = 'Check its latest progress and what the assistant has already done before trying again. A new attempt can repeat actions already taken outside Daemons.ai.';
     action = '<a href="#tasks">Review tasks ↓</a>';
+  } else if (work.some(w => w.status === 'awaiting_approval')) {
+    title = 'An assistant proposed a follow-up task';
+    description = 'Review the proposal before it enters the task queue. It cannot start until a manager approves it.';
+    action = '<a href="#tasks">Review proposal ↓</a>';
   } else if (work.some(w => w.status === 'queued')) {
     title = 'Waiting for an assistant to pick up a task';
     description = 'Queued tasks are ready. Your connected assistant needs to check for work.';
@@ -135,6 +140,7 @@ function activityView(activity) {
 }
 function taskView(w) {
   const explanations = {
+    awaiting_approval: 'This is a proposal from a connected assistant. It has not started and cannot be picked up until a manager approves it.',
     queued: 'This task has not started. A connected assistant needs to pick it up.',
     working: 'An assistant picked up this task. Its latest reported progress appears in Activity.',
     succeeded: '',
@@ -143,7 +149,7 @@ function taskView(w) {
     attention_required: 'This attempt can no longer report results. Its assistant may have missed a check-in, its access may have ended, or you may have ended the attempt. Check what happened before trying again.',
   };
   const canRetry = ['failed', 'cancelled', 'attention_required'].includes(w.status);
-  return `<article class="list-row"><div class="toolbar">${status(w.status)}<span class="meta">Instructions v${w.revision} · ${w.attempt ? `Attempt ${w.attempt}` : 'Not started'}</span></div><p class="task-title">${esc(w.input.task || JSON.stringify(w.input))}</p>${explanations[w.status] ? `<p class="helper">${esc(explanations[w.status])}</p>` : ''}${w.status === 'working' ? `<p class="helper">${esc(checkInText(w))}</p>` : ''}${w.attention_reason === 'owner_ended' ? '<p class="callout">You ended this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p>' : ''}${w.cancel_requested && w.status === 'working' ? '<p class="callout">Stop requested. The assistant must acknowledge it; it may continue working until then.</p>' : ''}${w.result !== null && w.result !== undefined ? `<div class="task-result"><h3>${w.status === 'succeeded' ? 'Result' : 'Assistant’s report'}</h3>${taskResultView(w.result)}</div>` : ''}<p class="helper">Last update: ${esc(dateLabel(w.updated_at))}</p>${canRetry ? '<p class="helper">Before trying again, review any actions already completed. Another attempt may repeat them.</p>' : ''}<div class="actions">${(!activeDaemonRole||can(activeDaemonRole,'operator'))&&['queued', 'working'].includes(w.status) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="cancel">${w.status === 'queued' ? 'Cancel task' : 'Request stop'}</button>` : ''}${w.status === 'working' && (!activeDaemonRole||can(activeDaemonRole,'manager')) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="end-attempt" data-attempt-id="${esc(w.attempt_id)}">End this attempt</button>` : ''}${canRetry&&(!activeDaemonRole||can(activeDaemonRole,'operator')) ? `<button data-work="${esc(w.id)}" data-action="retry">Try task again</button>` : ''}</div>${w.attempt_id ? `<details data-starting="${esc(w.id)}" data-attempt="${esc(w.attempt_id)}"><summary>Starting context</summary><div>Open to read the briefing used for this attempt.</div></details>` : ''}<details><summary>Technical task details</summary><div class="meta">Task ID: ${esc(w.id)}</div><pre>${pretty({input: w.input, attempt_id: w.attempt_id, result: w.result})}</pre></details></article>`;
+  return `<article class="list-row"><div class="toolbar">${status(w.status)}<span class="meta">Instructions v${w.revision} · ${w.attempt ? `Attempt ${w.attempt}` : 'Not started'}</span></div><p class="task-title">${esc(w.input.task || JSON.stringify(w.input))}</p>${w.discovered_by_name?`<p class="helper">Suggested by ${esc(w.discovered_by_name)}</p>`:''}${explanations[w.status] ? `<p class="helper">${esc(explanations[w.status])}</p>` : ''}${w.status === 'working' ? `<p class="helper">${esc(checkInText(w))}</p>` : ''}${w.attention_reason === 'owner_ended' ? '<p class="callout">You ended this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p>' : ''}${w.cancel_requested && w.status === 'working' ? '<p class="callout">Stop requested. The assistant must acknowledge it; it may continue working until then.</p>' : ''}${w.result !== null && w.result !== undefined ? `<div class="task-result"><h3>${w.status === 'succeeded' ? 'Result' : 'Assistant’s report'}</h3>${taskResultView(w.result)}</div>` : ''}<p class="helper">Last update: ${esc(dateLabel(w.updated_at))}</p>${canRetry ? '<p class="helper">Before trying again, review any actions already completed. Another attempt may repeat them.</p>' : ''}<div class="actions">${(!activeDaemonRole||can(activeDaemonRole,'operator'))&&['queued', 'working'].includes(w.status) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="cancel">${w.status === 'queued' ? 'Cancel task' : 'Request stop'}</button>` : ''}${w.status === 'working' && (!activeDaemonRole||can(activeDaemonRole,'manager')) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="end-attempt" data-attempt-id="${esc(w.attempt_id)}">End this attempt</button>` : ''}${canRetry&&(!activeDaemonRole||can(activeDaemonRole,'operator')) ? `<button data-work="${esc(w.id)}" data-action="retry">Try task again</button>` : ''}</div>${w.attempt_id ? `<details data-starting="${esc(w.id)}" data-attempt="${esc(w.attempt_id)}"><summary>Starting context</summary><div>Open to read the briefing used for this attempt.</div></details>` : ''}<details><summary>Technical task details</summary><div class="meta">Task ID: ${esc(w.id)}</div><pre>${pretty({input: w.input, attempt_id: w.attempt_id, result: w.result})}</pre></details></article>`;
 }
 async function daemon(id) {
   disposeBoard();
@@ -171,7 +177,7 @@ async function daemon(id) {
   if(can(d,'manager'))mountAutomaticPickup({root:document.querySelector('#automatic-pickup'),id,api,notify,esc});else document.querySelector('#automatic-pickup').closest('section').hidden=true;
   if(session.collaboration_enabled){const sharing=document.createElement('section');sharing.id='sharing-panel';document.querySelector('[data-room-panel="settings"]').prepend(sharing);await mountSharing({root:sharing,id,d,api,esc,notify,session,workspaces});}
   document.querySelector('#daemon-activity').addEventListener('toggle',async e=>{if(!e.currentTarget.open)return;try{const events=await api(`daemons/${id}/activity`);document.querySelector('#daemon-activity-content').innerHTML=activityView(events);}catch(err){notify(err.message);}});
-  const controller = mountBoard({id, initial: initialBoard, canOperate:can(d,'operator'), api, post, notify, esc, renderTask:taskView, resultView, onUpdate: board => {
+  const controller = mountBoard({id, initial: initialBoard, canOperate:can(d,'operator'),canManage:can(d,'manager'), api, post, notify, esc, renderTask:taskView, resultView, onUpdate: board => {
     d.paused=!!board.paused;document.querySelector('#pause').textContent=d.paused?'Resume task starts':'Pause task starts';
     document.querySelector('#next-step').innerHTML = nextStep(d, Object.values(board.columns).flatMap(c=>c.items), connections);
   }});

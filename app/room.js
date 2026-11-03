@@ -1,4 +1,5 @@
 import {mountExecution} from './execution.js';
+import {mountTaskDiscovery} from './task-discovery.js';
 import {avatar,defaults,icons,colors,glyph} from './identity.js';
 const taskDrafts=new Map();
 export function mountRoom({id,d,api,notify,esc}){
@@ -11,6 +12,8 @@ export function mountRoom({id,d,api,notify,esc}){
  const tasks=main.querySelector('#tasks');panels.tasks.append(main.querySelector('#next-step'),tasks);
  const execution=document.createElement('section');execution.className='panel';execution.id='execution-settings';panels.settings.append(execution);mountExecution({root:execution,id,d,api,notify});
  const pickup=main.querySelector('#automatic-pickup').closest('section');panels.settings.append(pickup);
+ const discovery=document.createElement('section');discovery.className='panel';discovery.id='task-discovery-settings';discovery.innerHTML='<h2>Assistant-discovered tasks</h2><div id="task-discovery"></div>';panels.settings.append(discovery);
+ if(d.access_role&&d.access_role!=='manager')discovery.hidden=true;else mountTaskDiscovery({root:discovery.querySelector('#task-discovery'),id,api,post:api,notify,esc});
  const summary=document.createElement('div');summary.className='pickup-summary';summary.innerHTML='<span><strong>Automatic pickup</strong> <span id="pickup-brief">Checking settings…</span></span><a href="#settings">Manage →</a>';tasks.before(summary);
  panels.memory.append(memory);memory.open=false;memory.classList.add('tab-content');memory.querySelector('summary').hidden=true;
  panels.instructions.append(instructions);const changes=main.querySelector(':scope > p.callout');if(changes){instructions.prepend(changes);const note=document.createElement('p');note.className='draft-notice';note.innerHTML='You have unpublished changes. <a href="#instructions">Review instructions →</a>';panels.tasks.prepend(note);}instructions.open=true;instructions.classList.add('tab-content');instructions.querySelector('summary').hidden=true;

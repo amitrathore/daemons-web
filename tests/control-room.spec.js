@@ -15,6 +15,7 @@ async function fixture(page){
   else if(p.endsWith('/versions'))data=[{revision:1,definition}];
   else if(p.endsWith('/board'))data=boardFixture([{id:'task1',status:'queued',input:{task:'Prepare the next cofounder shortlist'},updated_at:new Date().toISOString()},{id:'task2',status:'working',input:{task:'Review local merchant experience'},updated_at:new Date().toISOString()},{id:'task3',status:'succeeded',input:{task:'Define the partner criteria'},updated_at:new Date().toISOString()}]);
   else if(p.endsWith('/automatic-pickup'))data={published:true,connections:[]};
+  else if(p.endsWith('/task-discovery'))data=[];
   else if(p.endsWith('/memory'))data={items:[]};
   else if(p.endsWith('/work')&&req.method()==='POST'){if(state.fail)return route.fulfill({status:503,json:{error:'Try again shortly.'}});data={};}
   else data=[];
