@@ -82,3 +82,15 @@ The console links to the public policies; changing its footer does not add an
 acceptance gate or alter authentication. Update the policy revision date when
 changing substantive policy text. `footer.css` is shared by all public pages and
 the console, and is copied into the console build.
+
+## Assistant check-in settings
+
+Daemon → Settings → Execution offers 30 minutes, 2 hours (default), 8 hours,
+or no automatic expiry. This limits silence between progress reports, not total
+task duration. Changes affect new attempts. Active cards show the last check-in
+and next deadline. Owners can request a cooperative stop or separately end a
+stuck attempt; ending blocks further reports but does not stop external work.
+Review any external effects before choosing Try task again.
+
+Deploy the matching API migration and replace every old API instance before
+releasing these controls. The service repository documents migration and rollback.

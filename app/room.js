@@ -1,3 +1,4 @@
+import {mountExecution} from './execution.js';
 import {avatar,defaults,icons,colors,glyph} from './identity.js';
 const taskDrafts=new Map();
 export function mountRoom({id,d,api,notify,esc}){
@@ -8,6 +9,7 @@ export function mountRoom({id,d,api,notify,esc}){
  const tabs=document.createElement('nav');tabs.className='room-tabs';tabs.setAttribute('aria-label','Daemon sections');tabs.innerHTML=['Tasks','Memory','Instructions','Settings'].map(x=>`<a href="#${x.toLowerCase()}" data-room-tab="${x.toLowerCase()}">${glyph({Tasks:'chart',Memory:'book',Instructions:'compass',Settings:'spark'}[x])}${x}</a>`).join('');purposeWrap.after(tabs);
  const panels={};for(const name of ['tasks','memory','instructions','settings']){const panel=document.createElement('div');panel.dataset.roomPanel=name;panel.id='section-'+name;panels[name]=panel;main.append(panel);}
  const tasks=main.querySelector('#tasks');panels.tasks.append(main.querySelector('#next-step'),tasks);
+ const execution=document.createElement('section');execution.className='panel';execution.id='execution-settings';panels.settings.append(execution);mountExecution({root:execution,id,d,api,notify});
  const pickup=main.querySelector('#automatic-pickup').closest('section');panels.settings.append(pickup);
  const summary=document.createElement('div');summary.className='pickup-summary';summary.innerHTML='<span><strong>Automatic pickup</strong> <span id="pickup-brief">Checking settings…</span></span><a href="#settings">Manage →</a>';tasks.before(summary);
  panels.memory.append(memory);memory.open=false;memory.classList.add('tab-content');memory.querySelector('summary').hidden=true;
