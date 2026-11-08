@@ -11,14 +11,19 @@ test('homepage explains ongoing work and setup across compatible AI tools',async
   });
   await page.goto('/');
   await expect(page.getByRole('heading',{level:1})).toHaveText('One place to organize ongoing work across your AI assistants and agents.');
-  await expect(page.locator('.lead')).toContainText('compatible AI assistants, agents, chatbots, and copilots');
-  await expect(page.locator('.daemon-definition')).toContainText('your connected assistants and agents do the work');
+  await expect(page.locator('.lead')).toContainText('everyone and their approved AIs');
+  await expect(page.locator('.daemon-definition')).toContainText('shared workspace for an ongoing project or responsibility');
+  await expect(page.getByRole('figure',{name:'People and their AIs, connected to the same work.'})).toBeVisible();
+  await expect(page.locator('.shared-diagram')).toContainText('Each AI connection needs separate approval');
+  await expect(page.locator('#capabilities')).toContainText('periodic renewal');
+  await expect(page.locator('.example-members')).toContainText('Maya + her assistant');
+  await expect(page.locator('.example-members')).toContainText('Leo + his agent');
   for(const link of await page.getByRole('link',{name:'Get started',exact:true}).all())await expect(link).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'Get started',exact:true})).toHaveCount(2);
-  await page.getByRole('link',{name:'See an example',exact:true}).click();await expect(page).toHaveURL(/#examples$/);
-  expect(await page.locator('main > section').evaluateAll(nodes=>nodes.slice(0,5).map(n=>n.getAttribute('aria-labelledby')))).toEqual(['hero-title','capabilities-title','preview-title','examples-title','steps-title']);
-  await expect(page.locator('.preview-parts article')).toHaveCount(3);
-  await expect(page.locator('#examples .steps li')).toHaveCount(3);
+  await page.getByRole('link',{name:'See how it works',exact:true}).click();await expect(page).toHaveURL(/#how-it-works$/);
+  expect(await page.locator('main > section').evaluateAll(nodes=>nodes.slice(0,4).map(n=>n.getAttribute('aria-labelledby')))).toEqual(['hero-title','capabilities-title','examples-title','steps-title']);
+  await expect(page.locator('.example-context article')).toHaveCount(2);
+  await expect(page.locator('#examples .example-workflow li')).toHaveCount(3);
   await expect(page.locator('#how-it-works .steps li')).toHaveCount(3);
   await expect(page.locator('#capabilities article')).toHaveCount(3);
   await expect(page.locator('.practical-notes')).toContainText('Approving a connection alone does not start work');
@@ -29,7 +34,8 @@ test('homepage explains ongoing work and setup across compatible AI tools',async
   for(const width of [1365,900,768,560,390,320]){
     await page.setViewportSize({width,height:900});
     expect(await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(n=>n.getBoundingClientRect().right>innerWidth+1).map(n=>n.tagName+'.'+n.className)}))).toEqual({width,scroll:width,overflow:[]});
-    for(const name of ['Instructions','Saved decisions','Tasks & results'])await expect(page.locator('.preview-parts').getByRole('heading',{name,exact:true})).toBeVisible();
+    await expect(page.locator('.shared-diagram')).toBeVisible();
+    await expect(page.locator('.example-context').getByRole('heading',{name:'“Prioritize accessible venues near transit.”',exact:true})).toBeVisible();
   }
   await page.setViewportSize({width:1365,height:1000});await page.screenshot({path:'test-results/landing-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/landing-mobile.png',fullPage:true});
@@ -44,7 +50,7 @@ test('homepage explains ongoing work and setup across compatible AI tools',async
 });
 
 test('social metadata exposes a decodable large image and matching favicon exports',async({page})=>{
-  const description='Keep instructions, saved decisions, tasks, and results together. Connect compatible AI assistants, agents, chatbots, and copilots so they can build on work already done.';
+  const description='Work on your own or with teammates. Keep instructions, saved decisions, tasks, and results together so everyone and their approved AIs can build on the same work.';
   const assets={'/assets/soul-familiar-v2.png':'image/png','/assets/favicon-familiar-v2.svg':'image/svg+xml','/assets/favicon-familiar-v2.ico':'image/x-icon','/assets/apple-touch-icon-familiar-v2.png':'image/png'};
   await page.route('http://127.0.0.1:8096/**',async route=>{
     const p=new URL(route.request().url()).pathname;

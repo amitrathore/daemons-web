@@ -7,22 +7,23 @@ The marketing page explains the shipped product and uses a labeled illustration
 with fictional task data. Its preview makes no authenticated API calls.
 
 The homepage leads with “One place to organize ongoing work across your AI assistants and agents.”
-A Daemon is explained as a workspace holding instructions, saved decisions, tasks,
-and results while connected assistants and agents execute work externally.
-Assistants, agents, chatbots, and copilots are introduced once as categories of
-compatible AI tools; the copy does not promise universal compatibility.
+A Daemon is a shared workspace for an ongoing project or responsibility. The
+homepage addresses individuals and teams, showing people and their approved AIs
+contributing to the same instructions, saved decisions, tasks, and results.
 
-The homepage explains saved context, shared tasks, and AI tool choice before the
-product preview and example. Sharing and permission details appear with setup.
-A simplified renovation preview leads into a three-part example: compare quotes,
-save a decision, and retrieve it in a later conversation to assess a revised quote.
-This is illustrative work using user-provided documents, not a built-in integration.
-Setup covers creating a Daemon (including publishing instructions), connecting a
-compatible tool, and assigning a task. Visible setup notes explain active pickup,
-external execution, and explicit saving/retrieval of context. Repeated capability
-sections are consolidated into saved context, shared assignments, and AI tool choice.
-The existing mascot remains decorative; social metadata uses the mascot asset
-without the old headline. Existing console behavior and APIs are unchanged.
+The hero uses an HTML/CSS relationship diagram with readable text; the mascot is
+small and decorative. Three benefits explain persistent context, reusable AI
+connections, and collaboration among people and their AIs before the example.
+Connection reuse is qualified by initial approval, permitted Daemons/scopes, and
+periodic renewal; the FAQ states the current 30-day expiry.
+
+A single illustrative community-event preview follows Maya's assistant comparing
+supplied venue information, Leo saving a decision, and Leo's approved agent
+retrieving it to draft an invitation for review. No automatic handoffs, external
+integrations, or outreach are implied. Setup covers creating/publishing a Daemon,
+connecting a compatible AI, and starting a task. Invitations and separate AI
+approvals are explained alongside setup. Saved context is explicit, and execution
+remains external. Existing console behavior and APIs are unchanged.
 
 Preview the public homepage separately from the console:
 
