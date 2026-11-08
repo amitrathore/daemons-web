@@ -6,15 +6,21 @@ at https://app.daemons.ai, deployed on Fly in `daemons-console`.
 The marketing page explains the shipped product and uses a labeled illustration
 with fictional task data. Its preview makes no authenticated API calls.
 
-The homepage leads with “Give your AI assistants a soul. Stay in control of their work.”
-It defines a Daemon as a persistent home for a thread of responsibility and explains
-continuity across assistants: ongoing responsibilities,
-saved plans and decisions, and a shared work queue. Business follow-ups, a home
-renovation, and a community event illustrate successive assignments rather than
-one-off prompts. These are configurable examples, not built-in integrations or
-automatic scheduling. The existing “Give your AI assistants a soul” artwork remains consistent with the
-headline. Assistant independence means approved access and continuity of the work;
-copy does not promise external-provider non-retention or deletion of data already received.
+The homepage leads with “One place to organize ongoing work across your AI tools.”
+A Daemon is explained as a workspace holding instructions, saved decisions, tasks,
+and results while connected assistants and agents execute work externally.
+Assistants, agents, chatbots, and copilots are introduced once as categories of
+compatible AI tools; the copy does not promise universal compatibility.
+
+A simplified renovation preview leads into a three-part example: compare quotes,
+save a decision, and retrieve it in a later conversation to assess a revised quote.
+This is illustrative work using user-provided documents, not a built-in integration.
+Setup covers creating a Daemon (including publishing instructions), connecting a
+compatible tool, and assigning a task. Visible setup notes explain active pickup,
+external execution, and explicit saving/retrieval of context. Repeated capability
+sections are consolidated into saved context, shared assignments, and access.
+The existing mascot remains decorative; social metadata uses the mascot asset
+without the old headline. Existing console behavior and APIs are unchanged.
 
 Preview the public homepage separately from the console:
 
