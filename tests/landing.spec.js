@@ -10,7 +10,7 @@ test('homepage explains ongoing work and setup across compatible AI tools',async
     return route.continue();
   });
   await page.goto('/');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('One place to organize ongoing work across your AI tools.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('One place to organize ongoing work across your AI assistants and agents.');
   await expect(page.locator('.lead')).toContainText('compatible AI assistants, agents, chatbots, and copilots');
   await expect(page.locator('.daemon-definition')).toContainText('your connected assistants and agents do the work');
   for(const link of await page.getByRole('link',{name:'Get started',exact:true}).all())await expect(link).toHaveAttribute('href','https://app.daemons.ai');
@@ -55,7 +55,7 @@ test('social metadata exposes a decodable large image and matching favicon expor
     return route.continue();
   });
   await page.goto('/');
-  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Organize ongoing work across your AI tools.');
+  for(const selector of ['meta[property="og:title"]','meta[name="twitter:title"]'])await expect(page.locator(selector)).toHaveAttribute('content','Daemons.ai — Organize ongoing work across your AI assistants and agents.');
   for(const selector of ['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'])await expect(page.locator(selector)).toHaveAttribute('content',description);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content','summary_large_image');
   for(const selector of ['meta[property="og:image"]','meta[name="twitter:image"]'])await expect(page.locator(selector)).toHaveAttribute('content','https://daemons.ai/assets/soul-familiar-v2.png');

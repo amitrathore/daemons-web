@@ -6,7 +6,7 @@ at https://app.daemons.ai, deployed on Fly in `daemons-console`.
 The marketing page explains the shipped product and uses a labeled illustration
 with fictional task data. Its preview makes no authenticated API calls.
 
-The homepage leads with “One place to organize ongoing work across your AI tools.”
+The homepage leads with “One place to organize ongoing work across your AI assistants and agents.”
 A Daemon is explained as a workspace holding instructions, saved decisions, tasks,
 and results while connected assistants and agents execute work externally.
 Assistants, agents, chatbots, and copilots are introduced once as categories of
