@@ -12,13 +12,15 @@ and results while connected assistants and agents execute work externally.
 Assistants, agents, chatbots, and copilots are introduced once as categories of
 compatible AI tools; the copy does not promise universal compatibility.
 
+The homepage explains saved context, shared tasks, and AI tool choice before the
+product preview and example. Sharing and permission details appear with setup.
 A simplified renovation preview leads into a three-part example: compare quotes,
 save a decision, and retrieve it in a later conversation to assess a revised quote.
 This is illustrative work using user-provided documents, not a built-in integration.
 Setup covers creating a Daemon (including publishing instructions), connecting a
 compatible tool, and assigning a task. Visible setup notes explain active pickup,
 external execution, and explicit saving/retrieval of context. Repeated capability
-sections are consolidated into saved context, shared assignments, and access.
+sections are consolidated into saved context, shared assignments, and AI tool choice.
 The existing mascot remains decorative; social metadata uses the mascot asset
 without the old headline. Existing console behavior and APIs are unchanged.
 

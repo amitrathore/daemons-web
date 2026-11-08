@@ -16,7 +16,7 @@ test('homepage explains ongoing work and setup across compatible AI tools',async
   for(const link of await page.getByRole('link',{name:'Get started',exact:true}).all())await expect(link).toHaveAttribute('href','https://app.daemons.ai');
   await expect(page.getByRole('link',{name:'Get started',exact:true})).toHaveCount(2);
   await page.getByRole('link',{name:'See an example',exact:true}).click();await expect(page).toHaveURL(/#examples$/);
-  expect(await page.locator('main > section').evaluateAll(nodes=>nodes.slice(0,3).map(n=>n.className))).toEqual(['hero wrap','preview-section wrap','section wrap']);
+  expect(await page.locator('main > section').evaluateAll(nodes=>nodes.slice(0,5).map(n=>n.getAttribute('aria-labelledby')))).toEqual(['hero-title','capabilities-title','preview-title','examples-title','steps-title']);
   await expect(page.locator('.preview-parts article')).toHaveCount(3);
   await expect(page.locator('#examples .steps li')).toHaveCount(3);
   await expect(page.locator('#how-it-works .steps li')).toHaveCount(3);

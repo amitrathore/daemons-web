@@ -81,3 +81,6 @@ footer:not(.site-footer){display:flex;flex-wrap:wrap;align-items:center;gap:25px
 .practical-notes{margin-top:40px;padding:28px;border:1px solid var(--line);border-radius:20px;background:var(--surface-soft)}.practical-notes h3{font-size:22px}.practical-notes ul{padding-left:22px;margin:18px 0}.practical-notes li{padding:6px 0;color:var(--muted)}.practical-notes strong{color:var(--text)}.practical-notes .text-link{margin:0}
 .faq a{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
 @media(max-width:800px){.preview-parts,.steps,.features{grid-template-columns:1fr}.preview-parts article+article{border-left:0;border-top:1px solid var(--line)}.hero-aside{max-width:220px}.hero .hero-familiar{max-height:180px}.preview-parts article,.project-preview-heading{padding:22px}.practical-notes{padding:22px}.hero .familiar-caption{font-size:12px}}
+
+.features-section + .preview-section{padding-top:65px}
+@media(max-width:800px){.features-section + .preview-section{padding-top:45px}}
