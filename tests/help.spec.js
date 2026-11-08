@@ -9,6 +9,7 @@ async function fixture(page,{published=true,paused=false,edited=false,work=[],co
     let result;
     if(path.endsWith('/appearance'))result={icon:'spark',color:'violet',revision:0};
     else if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    else if(path.endsWith('/task-discovery'))result=[];
     else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
     else if(path==='control-room')result=[daemon];
     else if(path==='daemons')result=[daemon];
@@ -53,7 +54,7 @@ test('published daemon explains waiting, interrupted work, results, and unpublis
   await page.locator('[data-card="w2"] > summary').click();await expect(page.getByText('Check what happened before trying again.',{exact:false})).toBeVisible();await expect(page.getByRole('button',{name:'Try task again'})).toBeVisible();await page.getByRole('button',{name:'Close task details'}).click();
   await page.locator('[data-card="w3"] > summary').click();
   await expect(page.getByText('Brief is ready',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Settings',exact:true}).click();await page.getByText('Activity',{exact:true}).click();
+  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Tasks',exact:true}).click();await expect(page.locator('#daemon-activity')).toBeVisible();await page.getByText('Activity history',{exact:true}).click();
   await expect(page.getByText('Assistant picked up the task',{exact:true})).toBeVisible();
   await page.screenshot({path:'test-results/inline-help-tasks-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -94,7 +95,7 @@ test('completed daemon shows its report once and keeps reference material collap
   await expect(page.getByRole('region',{name:'What to do next'})).toHaveCount(0);
   await expect(page.getByText('Draft version 1',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Preparing the plan',{exact:true})).not.toBeVisible();
-  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Settings',exact:true}).click();await page.getByText('Activity',{exact:true}).click();
+  await page.getByRole('button',{name:'Close task details'}).click();await page.getByRole('link',{name:'Tasks',exact:true}).click();await expect(page.locator('#daemon-activity')).toBeVisible();await page.getByText('Activity history',{exact:true}).click();
   await expect(page.getByText('Preparing the plan',{exact:true})).toBeVisible();
   await expect(page.getByText(report.result,{exact:true})).toHaveCount(1);
   await page.getByRole('link',{name:'Instructions',exact:true}).click();

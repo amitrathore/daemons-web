@@ -1,15 +1,17 @@
+import {checkInText} from './execution.js';
 const relative=value=>{const m=Math.max(0,Math.floor((Date.now()-new Date(value))/60000));return m<1?'Just now':m<60?m+'m ago':m<1440?Math.floor(m/60)+'h ago':Math.floor(m/1440)+'d ago';};
 // TaskBoard Protocol client. Poll only the board; preserve the surrounding editor state.
 let cleanup=()=>{};
 export const disposeBoard=()=>cleanup();
-export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView,onUpdate}) {
+export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,notify,esc,renderTask,resultView,onUpdate}) {
   disposeBoard();
   const root=document.querySelector('#tasks'), grid=root.querySelector('.task-board');
-  const labels={queued:'Queued',working:'In progress',attention:'Needs attention',finished:'Finished'};
-  const empty={queued:'No tasks waiting.',working:'No tasks in progress.',attention:'Nothing needs attention.',finished:'No finished tasks.'};
-  const status={queued:'Waiting for an assistant',working:'In progress',failed:'Failed',attention_required:'Needs your review',succeeded:'Completed',cancelled:'Cancelled'};
+  const labels={approval:'Needs approval',queued:'Queued',working:'In progress',attention:'Needs attention',finished:'Finished'};
+  const empty={approval:'No proposals to review.',queued:'No tasks waiting.',working:'No tasks in progress.',attention:'Nothing needs attention.',finished:'No finished tasks.'};
+  const status={awaiting_approval:'Needs approval',queued:'Waiting for an assistant',working:'In progress',failed:'Failed',attention_required:'Needs your review',succeeded:'Completed',cancelled:'Cancelled',rejected:'Dismissed'};
   const pageDepth=Object.fromEntries(Object.keys(labels).map(k=>[k,1]));
-  let state=initial, busy=false, dead=false;
+  const normalizeBoard=board=>{board.columns??={};board.counts??={};for(const key of Object.keys(labels)){board.columns[key]??={items:[],next_cursor:null};board.counts[key]??=0;}return board;};
+  let state=normalizeBoard(initial), busy=false, dead=false;
   const detailsCache=new Map(),activityCache=new Map(),movingDialogs=new WeakSet();
   const safe=fn=>async e=>{try{await fn(e);}catch(err){notify(err.message);}};
   grid.innerHTML=Object.entries(labels).map(([key,label])=>`<section class="board-column" data-column="${key}" aria-label="${label}"><h3>${label} <span class="column-count"></span></h3><div class="board-cards"></div><p class="column-empty"></p><button class="secondary board-more" data-more="${key}" hidden>More ${label.toLowerCase()} tasks</button></section>`).join('');
@@ -23,7 +25,7 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
       const more=section.querySelector('[data-more]');more.hidden=!board.columns[col].next_cursor;
       for(const w of items){
         let card=existing.get(w.id);
-        if(!card){card=document.createElement('article');card.className='board-card';card.dataset.cardId=w.id;card.innerHTML=`<details data-card="${w.id}"><summary><span class="board-card-title"></span><span class="board-card-status"></span><span class="board-card-meta"></span><span class="board-card-progress"></span></summary><dialog class="task-drawer" aria-label="Task details"><div class="drawer-top"><h2>Task details</h2><button type="button" class="secondary" data-close-task aria-label="Close task details">✕</button></div><div class="board-detail"></div><div class="board-order actions" aria-label="Queue position"></div></dialog></details>`;}
+        if(!card){card=document.createElement('article');card.className='board-card';card.dataset.cardId=w.id;card.innerHTML=`<details data-card="${w.id}"><summary><span class="board-card-title"></span><span class="board-card-status"></span><span class="board-card-meta"></span><span class="board-card-progress"></span><span class="board-card-check-in helper"></span></summary><dialog class="task-drawer" aria-label="Task details"><div class="drawer-top"><h2>Task details</h2><button type="button" class="secondary" data-close-task aria-label="Close task details">✕</button></div><div class="board-detail"></div><div class="board-order actions" aria-label="Queue position"></div></dialog></details>`;}
         if(holder.children[items.indexOf(w)]!==card){
           const before=holder.children[items.indexOf(w)]||null;
           if(typeof holder.moveBefore==='function'&&card.isConnected)holder.moveBefore(card,before);
@@ -35,12 +37,13 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
             holder.insertBefore(card,before);
             if(modal)dialog.showModal();
           }
-        }card.dataset.updated=w.updated_at;card.dataset.attempt=w.attempt_id||'';
+        }card.dataset.updated=w.updated_at;card.dataset.attempt=w.attempt_id||'';card.dataset.discoveredBy=w.discovered_by_name||'';
         card.querySelector('.board-card-title').textContent=w.title||'Task';
         card.querySelector('.board-card-status').textContent=`${col==='queued'?`#${w.queue_position} · `:''}${status[w.status]||w.status}${w.cancel_requested&&w.status==='working'?' · Stop requested':''}`;
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?relative(w.updated_at):''}`;
+        card.querySelector('.board-card-check-in').textContent=checkInText(w);
         card.querySelector('.board-card-progress').textContent=col==='working'?(w.progress||''):'';
-        card.querySelector('.board-order').innerHTML=col==='queued'?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
+        card.querySelector('.board-order').innerHTML=col==='queued'&&canOperate?['top','up','down','end'].map(move=>`<button class="secondary" data-move="${move}" ${((['top','up'].includes(move)&&!w.previous_id)||(['down','end'].includes(move)&&!w.next_id))?'disabled':''} aria-label="Move ${esc(w.title||'task')} ${move==='top'?'to top':move==='end'?'to end':move}">${{top:'Top',up:'↑ Up',down:'↓ Down',end:'End'}[move]}</button>`).join(''):'';
       }
 
     }
@@ -56,18 +59,20 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
     if(!force&&cached?.updated===card.dataset.updated){if(!container.children.length)container.innerHTML=cached.html;return;}
     const [w,events]=await Promise.all([api(`work/${taskId}`),api(`work/${taskId}/activity`)]);
     if(dead||!card.isConnected)return;
+    if(!w.discovered_by_name&&card.dataset.discoveredBy)w.discovered_by_name=card.dataset.discoveredBy;
     const open=[...container.querySelectorAll('details[open]')].map(d=>d.querySelector('summary')?.textContent);
     const eventHTML=events.items.map(e=>`<div class="list-row"><strong>${esc(e.type.replace('work.','').replaceAll('_',' '))}</strong><p class="helper">${esc(new Date(e.created_at).toLocaleString())}</p>${e.type==='work.progress'?resultView(e.data.report):''}</div>`).join('');
-    const html=renderTask(w)+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${['succeeded','cancelled'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
+    const approval=w.status==='awaiting_approval'&&canManage?`<section class="callout discovery-review"><h3>Assistant-discovered task</h3><p>It has not started. Approve it to add it to the task queue, or dismiss it.</p><div class="actions"><button type="button" data-discovery-decision="approve" data-work-id="${taskId}">Approve and queue</button><button type="button" class="secondary" data-discovery-decision="dismiss" data-work-id="${taskId}">Dismiss</button></div></section>`:'';
+    const html=approval+renderTask(w)+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${canOperate&&['succeeded','cancelled','rejected'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
     // Rebuild only when the task changed; keep nested expansions on refresh.
     container.innerHTML=html;for(const d of container.querySelectorAll('details'))if(open.includes(d.querySelector('summary')?.textContent))d.open=true;
     detailsCache.set(taskId,{updated:card.dataset.updated,html});activityCache.set(taskId,events);
   }
   async function fetchBoard(){
-    let board=await api(`daemons/${id}/board`);
+    let board=normalizeBoard(await api(`daemons/${id}/board`));
     for(const col of Object.keys(labels)){
       for(let page=1;page<pageDepth[col]&&board.columns[col].next_cursor;page++){
-        try{const r=await api(`daemons/${id}/board?column=${col}&cursor=${encodeURIComponent(board.columns[col].next_cursor)}`);if(col==='queued'&&r.queue_revision!==board.queue_revision)throw Error('The queue changed. Refresh it before continuing.');board.columns[col].items.push(...r.columns[col].items);board.columns[col].next_cursor=r.columns[col].next_cursor;}
+        try{const r=normalizeBoard(await api(`daemons/${id}/board?column=${col}&cursor=${encodeURIComponent(board.columns[col].next_cursor)}`));if(col==='queued'&&r.queue_revision!==board.queue_revision)throw Error('The queue changed. Refresh it before continuing.');board.columns[col].items.push(...r.columns[col].items);board.columns[col].next_cursor=r.columns[col].next_cursor;}
         catch(e){if(col==='queued'&&e.message.includes('queue changed')){pageDepth.queued=1;return api(`daemons/${id}/board`);}throw e;}
       }
       board.columns[col].items=[...new Map(board.columns[col].items.map(w=>[w.id,w])).values()];
@@ -87,14 +92,21 @@ export function mountBoard({id,initial,api,post,notify,esc,renderTask,resultView
   root.addEventListener('click',safe(async e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.hasAttribute('data-close-task')){b.closest('dialog').close();return;}
+    if(b.hasAttribute('data-dismiss-end')){const box=b.closest('[data-end-confirm]'),task=box.closest('[data-card-id]');box.remove();task.querySelector('[data-action="end-attempt"]')?.focus();return;}
     if(b.id==='refresh'){await refresh();return;}
     if(b.dataset.more){pageDepth[b.dataset.more]++;await refresh();return;}
     if(b.dataset.events){const cached=activityCache.get(b.dataset.events);const r=await api(`work/${b.dataset.events}/activity?cursor=${encodeURIComponent(cached.next_cursor)}`);b.previousElementSibling.insertAdjacentHTML('beforeend',r.items.map(x=>`<div class="list-row">${esc(x.type)} ${x.type==='work.progress'?resultView(x.data.report):''}</div>`).join(''));activityCache.set(b.dataset.events,r);b.hidden=!r.next_cursor;return;}
-    if(!b.dataset.move&&!b.dataset.work&&!b.dataset.archive)return;
+    if(!b.dataset.move&&!b.dataset.work&&!b.dataset.archive&&!b.dataset.discoveryDecision)return;
+    if(b.dataset.action==='end-attempt'&&!b.hasAttribute('data-confirmed-end')){
+      const container=b.closest('.board-detail');let box=container.querySelector('[data-end-confirm]');
+      if(!box){box=document.createElement('section');box.className='callout';box.setAttribute('data-end-confirm','');box.setAttribute('role','group');box.setAttribute('aria-label','End this attempt?');box.innerHTML=`<h3>End this attempt?</h3><p>This prevents further reports from this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p><div class="actions"><button class="secondary" data-dismiss-end>Keep attempt running</button><button data-confirmed-end data-work="${esc(b.dataset.work)}" data-attempt-id="${esc(b.dataset.attemptId)}" data-action="end-attempt">End attempt and require review</button></div>`;b.closest('.actions').after(box);}
+      box.querySelector('[data-dismiss-end]').focus();return;
+    }
     b.disabled=true;
     try{
       if(b.dataset.move){const w=state.columns.queued.items.find(w=>w.id===b.closest('[data-card-id]').dataset.cardId);const before={top:state.first_queued_id,up:w.previous_id,down:w.after_next_id,end:undefined}[b.dataset.move];await post(`daemons/${id}/work-order`,{work_id:w.id,before_work_id:before||undefined,expected_queue_revision:state.queue_revision},{'Idempotency-Key':crypto.randomUUID()});}
-      if(b.dataset.work){await post(`work/${b.dataset.work}/${b.dataset.action}`);if(b.dataset.action==='retry')notify('Task queued again. Your assistant must pick it up to start a new attempt.');}
+      if(b.dataset.work){await post(`work/${b.dataset.work}/${b.dataset.action}`,b.dataset.action==='end-attempt'?{attempt_id:b.dataset.attemptId}:{},b.dataset.action==='end-attempt'?{'Idempotency-Key':crypto.randomUUID()}:{});if(b.dataset.action==='end-attempt')notify('Attempt ended. Review what happened before trying again.');if(b.dataset.action==='retry')notify('Task queued again. Your assistant must pick it up to start a new attempt.');}
+      if(b.dataset.discoveryDecision){await post(`work/${b.dataset.workId}/${b.dataset.discoveryDecision}-discovery`,{}, {'Idempotency-Key':crypto.randomUUID()});notify(b.dataset.discoveryDecision==='approve'?'Proposal approved and added to the queue.':'Proposal dismissed.');}
       if(b.dataset.archive)await post(`daemons/${id}/work-archive`,{work_id:b.dataset.archive},{'Idempotency-Key':crypto.randomUUID()});
     }catch(err){notify(err.message);}
     finally{b.disabled=false;await refresh();}

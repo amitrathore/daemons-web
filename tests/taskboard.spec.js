@@ -9,6 +9,7 @@ async function fixture(page){
   const req=route.request(),u=new URL(req.url()),path=u.pathname.slice(4),body=req.postDataJSON();let result;
   if(path.endsWith('/appearance'))result={icon:'spark',color:'violet',revision:0};
     else if(path.endsWith('/automatic-pickup'))result={published:true,paused:false,connections:[]};
+    else if(path.endsWith('/task-discovery'))result=[];
     else if(path==='session')result={account:{email:'owner@example.test'},csrf:'csrf'};
   else if(path==='connections')result=[{daemon_ids:[id],scopes:['work:execute'],expires_at:'2099-01-01',revoked:false}];
   else if(path===`daemons/${id}`)result={id,draft:definition,revision:1,published_revision:1};

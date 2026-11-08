@@ -88,3 +88,51 @@ The console links to the public policies; changing its footer does not add an
 acceptance gate or alter authentication. Update the policy revision date when
 changing substantive policy text. `footer.css` is shared by all public pages and
 the console, and is copied into the console build.
+
+## Assistant check-in settings
+
+Daemon → Settings → Execution offers 30 minutes, 2 hours (default), 8 hours,
+or no automatic expiry. This limits silence between progress reports, not total
+task duration. Changes affect new attempts. Active cards show the last check-in
+and next deadline. Owners can request a cooperative stop or separately end a
+stuck attempt; ending blocks further reports but does not stop external work.
+Review any external effects before choosing Try task again.
+
+Deploy the matching API migration and replace every old API instance before
+releasing these controls. The service repository documents migration and rollback.
+
+## Shared Daemons (private collaboration pilot)
+
+When the API reports collaboration_enabled, the console shows a Personal/Org
+workspace picker and Org administration under Manage workspaces. Teams are
+optional. Daemon Settings → Shared responsibility manages roles, invitation
+links, leads, and separate assistant approvals. Copy creates a clean unpublished
+draft; Move to Org explicitly moves existing history and clears old approvals.
+
+Invitations require sign-in, single-use acceptance, and inviter confirmation of
+the accepting identity. The secret lives only in the link fragment and is removed
+on acceptance-page load. Log in in a separate tab if necessary, then return to
+the original invitation. The console does not send invitation email. Viewer
+controls are read-only; Operator memory remains unconfirmed. Server-side role and
+scope checks remain authoritative even if a control is manipulated locally.
+
+Deploy the migration/API fully before this console. Collaboration defaults off;
+the API's operations guide describes enabling and verifying a private pilot.
+
+## Daemons Embed v1
+
+The console also serves `/embed/v1`, a dedicated human-facing tasks/results panel,
+and `/embed/component-v1.js`, a framework-independent Game component. Only the
+embed page may be framed, and only by a registered Game's exact origin; the full
+console and login retain framing protection. The Game installs a pinned local
+copy of the component and its adjacent component-v1.css stylesheet and the matching Ring adapter from daemons.ai/sdk/clojure.
+The frame receives data through a fixed source/origin/nonce-bound message channel;
+Game credentials and Intergraph tokens never enter it. It does not use third-party
+cookies. Games supply reviewed, opt-in context through contextProvider.
+
+`/connect-game?request=...` handles top-level consent, naming the requesting Game
+and selected Daemons. `/game-connections` lists and revokes human Game approvals,
+separately from assistant executor grants. All approval decisions are enforced
+server-side by Daemons. These routes appear when the API reports embed_enabled.
+See daemons.ai/docs/daemons-embed.md for registration, adapter installation,
+permissions, limits, pilot rollout, and verification. No npm artifact is published.
