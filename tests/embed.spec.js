@@ -15,7 +15,7 @@ async function host(page,{viewer=false}={}){
  </script></body></html>`}));
  await page.goto('/embed-test');await page.getByRole('button',{name:'Work with test Daemon'}).click();return page.frameLocator('iframe');
 }
-test('Game component attaches reviewed context, submits once and shows task results',async({page})=>{
+test('App component attaches reviewed context, submits once and shows task results',async({page})=>{
  const panel=await host(page);await expect(panel.getByLabel('Daemon',{exact:true})).toContainText('Test Daemon');
  const drawer=await page.getByRole('dialog').boundingBox();expect(drawer.width).toBeGreaterThan(450);expect(drawer.height).toBeGreaterThan(600);
  await panel.getByLabel('New task').fill('Explore an ending');expect(await page.evaluate(()=>calls.filter(c=>c.args.operation==='submit').length)).toBe(0);
@@ -40,7 +40,7 @@ test('mobile panel fits the viewport and failed submission preserves draft and r
  const box=await page.locator('intergraph-daemons').locator('iframe').boundingBox();expect(box.width).toBeLessThanOrEqual(390);
  await page.screenshot({path:'test-results/daemons-embed-mobile.png'});
 });
-test('Game consent explicitly selects Daemons and capabilities without executor authorization',async({page})=>{
+test('App consent explicitly selects Daemons and capabilities without executor authorization',async({page})=>{
  let approved;
  await page.route('https://api.daemons.ai/v1/**',async route=>{const req=route.request(),path=new URL(req.url()).pathname.slice(4);let result=[];
  if(path==='session')result={account:{id:daemon,email:'person@example.test'},csrf:'csrf',embed_enabled:true,collaboration_enabled:true};
@@ -52,10 +52,29 @@ test('Game consent explicitly selects Daemons and capabilities without executor 
  await route.fulfill({json:result});});
  await page.goto('/connect-game?request=request1');await expect(page.getByRole('heading',{name:'Connect OVERHEAD to your Daemons'})).toBeVisible();
  await expect(page.getByText('including existing task history.',{exact:false})).toBeVisible();
- await page.locator('[name=daemon]').check();await page.locator('[name=submit]').check();await page.getByRole('button',{name:'Connect Game',exact:true}).click();
+ await expect(page.getByRole('link',{name:'Connected apps',exact:true})).toHaveAttribute('href','/game-connections');
+ await page.locator('[name=daemon]').check();await page.locator('[name=submit]').check();await page.getByRole('button',{name:'Connect app',exact:true}).click();
  await expect.poll(()=>approved).toEqual({workspace_id:daemon,daemon_ids:[daemon],requested_capabilities:['read','submit']});
 });
 test('Only registered origins can frame the dedicated embed route',async({request})=>{
  const consolePage=await request.get('/');expect(consolePage.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
  const invalid=await request.get('/embed/v1?game=invalid&parent_origin=https://attacker.test');expect(invalid.status()).toBe(400);
+});
+
+test('Connected apps lists existing connections and disconnects through the compatible endpoint',async({page})=>{
+ let disconnected=false;
+ await page.route('https://api.daemons.ai/v1/**',async route=>{
+  const req=route.request(),path=new URL(req.url()).pathname.slice(4);let result=[];
+  if(path==='session')result={account:{id:daemon,email:'person@example.test'},csrf:'csrf',embed_enabled:true};
+  else if(path==='game-connections')result=disconnected?[]:[{id:connection,game_name:'OVERHEAD',origin:'https://overhead.im',capabilities:['read','submit'],revoked:false,expires_at:'2026-12-08T12:00:00Z'}];
+  else if(path===`game-connections/${connection}`){expect(req.method()).toBe('DELETE');expect(req.headers()['x-csrf-token']).toBe('csrf');disconnected=true;result={status:'disconnected'};}
+  await route.fulfill({json:result});
+ });
+ await page.goto('/game-connections');
+ await expect(page.getByRole('heading',{name:'Connected apps',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'OVERHEAD',exact:true})).toBeVisible();
+ await expect(page.getByText('Connected assistants carry out the tasks.',{exact:false})).toBeVisible();
+ await page.getByRole('button',{name:'Disconnect app',exact:true}).click();
+ await expect(page.getByText('No connected apps yet.',{exact:false})).toBeVisible();
+ expect(disconnected).toBe(true);
 });

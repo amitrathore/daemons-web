@@ -10,5 +10,5 @@ export class IntergraphDaemons extends HTMLElement {
  refresh(){if(this.frame)this.frame.contentWindow.postMessage({protocol,nonce:this.nonce,type:'refresh'},this.frameOrigin);}
 }
 if(!customElements.get('intergraph-daemons'))customElements.define('intergraph-daemons',IntergraphDaemons);
-// Install in a Game callback page after removing code/state from its URL.
+// Install in an app callback page after removing code/state from its URL.
 export async function completeConnection({transport,code,state,error}){const result=await transport('complete',{code,state,error});if(window.opener){window.opener.postMessage({protocol,type:'connected'},location.origin);}return result;}
