@@ -139,3 +139,14 @@ separately from assistant executor grants. All approval decisions are enforced
 server-side by Daemons. These routes appear when the API reports embed_enabled.
 See daemons.ai/docs/daemons-embed.md for registration, adapter installation,
 permissions, limits, pilot rollout, and verification. No npm artifact is published.
+
+## Assistant connection onboarding
+
+The API advertises seven reviewed default permissions. The consent screen shows
+a readable summary and optional Customize access. It supports connecting with no
+Daemons when creation is requested and approved. Explicit narrow requests remain
+narrow; owners can instead create a draft inline and return to the same pending
+request. Draft creation never publishes or grants access on its own. Expired
+requests require restarting from the assistant; saved drafts remain available.
+Shared workspaces omit assistant creation permission and retain manager approvals.
+Existing grants are not widened.

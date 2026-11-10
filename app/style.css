@@ -193,3 +193,6 @@ dialog{color:var(--text);background:var(--surface);border:1px solid var(--line);
 .task-activity{margin:1.25rem 0;padding:.7rem 1rem;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.task-activity>summary{font-size:13px;font-weight:700;cursor:pointer}.task-activity[open]>summary{border-bottom:1px solid var(--line);margin-bottom:.5rem}.task-activity .list-row{padding:.75rem 0}
 .settings-readonly{margin:0 0 1rem}
 @media(max-width:700px){.settings-section{padding:1rem!important}.setting-row{align-items:flex-start}.setting-row #pause{max-width:45%;white-space:normal}.sharing-settings>#sharing-panel{padding-inline:1rem}}
+
+/* Assistant consent keeps requested abilities readable without a wall of text. */
+.consent-permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:.65rem 2rem;padding-left:1.2rem;margin:1rem 0 1.5rem}.consent-permissions li{padding-left:.2rem}
