@@ -150,3 +150,9 @@ request. Draft creation never publishes or grants access on its own. Expired
 requests require restarting from the assistant; saved drafts remain available.
 Shared workspaces omit assistant creation permission and retain manager approvals.
 Existing grants are not widened.
+
+## Agent-to-agent guide
+
+The public `/a2a/` page explains A2A task handoffs with responsive diagrams, an
+example workflow, permission boundaries and an A2A/MCP comparison. Connection
+details are expandable. Public and console footers link to the guide.
