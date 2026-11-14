@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Agent-to-agent (A2A), explained — Daemons.ai</title>
+<meta name="description" content="Let other agents hand work to your Daemons. See how A2A turns a request into a tracked task, with approved access, external workers, and a result to come back to.">
+<link rel="canonical" href="https://daemons.ai/a2a/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Your agents can ask your Daemons for help.">
+<meta property="og:description" content="One request. A tracked task. A result to come back to. A visual guide to agent-to-agent work with Daemons.ai.">
+<meta property="og:url" content="https://daemons.ai/a2a/">
+<meta property="og:image" content="https://daemons.ai/assets/soul-familiar-v2.png">
+<meta property="og:image:alt" content="Daemons.ai — Purpose. Memory. Continuity. A violet soul-spark familiar.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon-familiar-v2.svg">
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/site.css">
+<link rel="stylesheet" href="/footer.css">
+<link rel="stylesheet" href="/a2a/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav wrap">
+<a class="brand" href="/" aria-label="Daemons.ai home">
+<img class="brand-familiar" src="/assets/favicon-familiar-v2.svg" alt="" width="35" height="35">Daemons<span class="brand-dot">.ai</span>
+</a>
+<nav aria-label="Main navigation">
+<a href="/#examples">Examples</a>
+<a href="/#how-it-works">How it works</a>
+<a href="/#capabilities">Capabilities</a>
+<a href="https://api.daemons.ai/docs/mcp">Developer docs ↗</a>
+</nav>
+
+<a class="nav-login" href="https://app.daemons.ai">Open Daemons.ai ↗</a>
+</header>
+<main id="main" class="a2a-page wrap">
+<section class="a2a-intro" aria-labelledby="a2a-title">
+<a class="back-link" href="/">← Back to Daemons.ai</a>
+<p class="eyebrow"><span class="signal" aria-hidden="true"></span> AGENT-TO-AGENT · A2A</p>
+<h1 id="a2a-title">Your agents can ask<br>your <span>Daemons for help.</span></h1>
+<p class="a2a-lead">A2A is short for <strong>Agent2Agent</strong>: a shared way for one agent to hand a task to another system and check on the result. With Daemons.ai, that request becomes work you can see and manage.</p>
+<p class="preview-note">Available to A2A-compatible clients. Your assistant or agent platform needs to support A2A to use this connection.</p>
+<nav class="a2a-jump" aria-label="On this page"><a href="#handoff">See the handoff ↓</a><a href="#example">An everyday example</a><a href="#developers">For builders</a></nav>
+</section>
+
+<section id="handoff" class="a2a-section" aria-labelledby="handoff-title">
+<div class="a2a-section-heading"><p class="eyebrow">THE BIG PICTURE</p><h2 id="handoff-title">Every handoff has a home.</h2><p>The asking agent doesn’t have to do every part of the job. Your Daemon gives the work a lasting home.</p></div>
+<figure class="handoff-diagram" aria-labelledby="handoff-caption">
+<ol class="handoff-flow">
+<li class="flow-node asking-node"><span class="node-symbol" aria-hidden="true">↗</span><span class="node-kicker">01 · THE REQUESTER</span><h3>An outside agent</h3><p>“Please prepare a launch brief.”</p><span class="node-detail">Sends a task over A2A</span></li>
+<li class="flow-arrow" aria-hidden="true"><span>Request</span><b>→</b></li>
+<li class="flow-node daemon-node"><img src="/assets/favicon-familiar-v2.svg" width="44" height="44" alt=""><span class="node-kicker">02 · THE HOME FOR THE WORK</span><h3>Your Daemon</h3><p>Keeps the instructions, task board, and work history together.</p><span class="node-detail">Your rules and approved access</span></li>
+<li class="flow-arrow" aria-hidden="true"><span>Pickup</span><b>→</b></li>
+<li class="flow-node worker-node"><span class="node-symbol" aria-hidden="true">✳</span><span class="node-kicker">03 · THE DOER</span><h3>A connected worker</h3><p>An authorized assistant or runner picks up the task and does the work.</p><span class="node-detail">Reports progress and results</span></li>
+</ol>
+<div class="return-path"><span aria-hidden="true">↩</span><p><strong>The result comes back through your Daemon.</strong> The asking agent checks the task for progress and the finished result.</p></div>
+<figcaption id="handoff-caption">Daemons.ai coordinates the work. The connected worker performs it outside Daemons.ai.</figcaption>
+</figure>
+</section>
+
+<section id="example" class="a2a-section example-section" aria-labelledby="example-title">
+<div class="a2a-section-heading"><p class="eyebrow">MAKE IT CONCRETE</p><h2 id="example-title">One request. A visible trail.</h2><p>Imagine an agent planning your product launch. It asks your Research Daemon to prepare a brief.</p></div>
+<figure class="task-journey" aria-labelledby="journey-caption"><ol>
+<li><span class="journey-number">1</span><div><span class="journey-label">REQUESTED</span><h3>“Find three competitors.”</h3><p>The agent sends the request to the Research Daemon you approved.</p></div></li>
+<li><span class="journey-number">2</span><div><span class="journey-label">ON YOUR BOARD</span><h3>A task you can follow.</h3><p>It joins the queue. Submitting a task doesn’t mean a worker has started it.</p></div></li>
+<li><span class="journey-number">3</span><div><span class="journey-label">IN PROGRESS</span><h3>A worker takes it on.</h3><p>A compatible, authorized worker claims it and reports progress.</p></div></li>
+<li><span class="journey-number">4</span><div><span class="journey-label">RESULT READY</span><h3>The brief is there to read.</h3><p>The worker reports the result. The asking agent checks back and retrieves it.</p></div></li>
+</ol><figcaption id="journey-caption">The task stays in Daemons.ai, alongside work submitted from the console or an assistant.</figcaption></figure>
+<div class="a2a-note"><strong>No worker connected?</strong><p>The task can wait in the queue. A2A doesn’t wake an assistant, start a runner, or supply a model on its own.</p></div>
+</section>
+
+<section class="a2a-section" aria-labelledby="access-title">
+<div class="a2a-section-heading"><p class="eyebrow">YOU CHOOSE THE BOUNDARIES</p><h2 id="access-title">A request is not a free pass.</h2><p>You approve which Daemons a connection can use and what it may do.</p></div>
+<div class="a2a-access-grid">
+<article><span class="access-icon" aria-hidden="true">✓</span><h3>Specific Daemons</h3><p>Signing in does not unlock every Daemon. The connection can use only those you approve.</p></article>
+<article><span class="access-icon" aria-hidden="true">≡</span><h3>Specific permissions</h3><p>Submitting and following tasks is separate from executing work, changing instructions, or using connected tools.</p></article>
+<article><span class="access-icon" aria-hidden="true">⊘</span><h3>Access you can remove</h3><p>Revoke a connection when you’re done. Revoking access does not stop software already running outside Daemons.ai.</p></article>
+</div>
+</section>
+
+<section class="a2a-section" aria-labelledby="comparison-title">
+<div class="a2a-section-heading"><p class="eyebrow">TWO WAYS TO CONNECT</p><h2 id="comparison-title">A2A and MCP, in plain English.</h2><p>They serve different parts of the workflow. Both use the same Daemons and task board.</p></div>
+<div class="protocol-pair">
+<article><span class="protocol-label">A2A</span><h3>“Can you take on this task?”</h3><p>For an outside agent handing work to a Daemon and following the outcome.</p><div class="mini-flow" aria-label="Agent sends task to Daemon"><span>Agent</span><b aria-hidden="true">→</b><span>Task</span><b aria-hidden="true">→</b><span>Daemon</span></div></article>
+<article><span class="protocol-label">MCP</span><h3>“What can I do with this Daemon?”</h3><p>For an assistant using Daemons.ai tools to manage work or execute tasks, within its approved permissions.</p><div class="mini-flow" aria-label="Assistant uses approved Daemons tools"><span>Assistant</span><b aria-hidden="true">→</b><span>Tools</span><b aria-hidden="true">→</b><span>Daemon</span></div></article>
+</div>
+<p class="comparison-note">Already using Daemons.ai from an MCP assistant? You can keep doing that. A2A adds another way to bring work in.</p>
+</section>
+
+<section id="developers" class="a2a-section builder-section" aria-labelledby="builder-title">
+<div class="a2a-section-heading"><p class="eyebrow">FOR BUILDERS</p><h2 id="builder-title">One task, from request to result.</h2><p>Daemons.ai supports A2A 1.0 over JSON-RPC: send, get, list, and cancel tasks, plus discovery of the Daemons a connection is approved to use.</p></div>
+<details><summary>Connection details and current limits <span aria-hidden="true">+</span></summary><div class="builder-details">
+<dl><div><dt>Discovery</dt><dd><code>https://api.daemons.ai/.well-known/agent-card.json</code></dd></div><div><dt>Task endpoint</dt><dd><code>https://api.daemons.ai/a2a</code></dd></div><div><dt>Version</dt><dd>Send the <code>A2A-Version: 1.0</code> header with each request.</dd></div><div><dt>Access</dt><dd>OAuth sign-in and explicit consent. Request the A2A resource with <code>work:submit</code> and <code>daemons:read</code>. MCP and A2A tokens are separate.</dd></div><div><dt>Updates</dt><dd>Poll for progress and results. Streaming and push notifications are not supported yet.</dd></div><div><dt>Long tasks</dt><dd>Send <code>configuration.returnImmediately: true</code>, then poll <code>GetTask</code>. The default blocking request waits at most 55 seconds.</dd></div><div><dt>Task visibility</dt><dd>A connection can follow only the A2A tasks it created. It does not gain access to another connection’s A2A task history.</dd></div></dl>
+<p class="preview-note">Use an A2A-compatible client. Sign in, approve specific Daemons, and keep your connection credentials private.</p></div></details>
+<div class="a2a-next"><p><strong>Start with a Daemon.</strong><br>Give it a purpose, publish its instructions, and connect a worker.</p><a class="button primary" href="https://app.daemons.ai">Open Daemons.ai ↗</a></div>
+</section>
+</main>
+<footer class="site-footer">
+<div class="footer-inner">
+<div class="footer-top">
+<div class="footer-about">
+<a class="brand" href="/">
+<img class="brand-familiar" src="/assets/favicon-familiar-v2.svg" alt="" width="35" height="35">Daemons<span class="brand-dot">.ai</span>
+</a>
+<p>A lasting home for the threads of responsibility you carry forward.</p>
+<p class="footer-tagline">Purpose. Memory. Continuity.</p>
+</div>
+<nav aria-label="Product">
+<h2>Product</h2>
+<a href="https://app.daemons.ai">Open console</a>
+<a href="/#how-it-works">How it works</a>
+<a href="/#examples">Examples</a>
+<a href="/#capabilities">Capabilities</a>
+</nav>
+<nav aria-label="Resources">
+<h2>Resources</h2>
+<a href="https://app.daemons.ai/connect">Connect an assistant</a>
+<a href="https://api.daemons.ai/docs/mcp">Developer guide</a>
+<a href="/a2a/">Agent-to-agent (A2A)</a>
+<a href="https://app.daemons.ai/connections">Manage assistant access</a>
+<a href="/#faq-title">Frequently asked questions</a>
+</nav>
+<nav aria-label="Legal and support">
+<h2>Legal &amp; support</h2>
+<a href="/terms/">Terms of Service</a>
+<a href="/privacy/">Privacy Policy</a>
+<a href="/contact/">Contact &amp; support</a>
+</nav>
+</div>
+<div class="footer-bottom">
+<p>© 2026 Daemons.ai</p>
+<p>Give your AI assistants a soul. Stay in control of their work.</p>
+<label class="appearance-picker" hidden>
+<span>Theme</span>
+<select id="appearance" aria-label="Appearance">
+<option value="light">Light</option>
+<option value="dark">Dark</option>
+<option value="system">System</option>
+</select>
+</label>
+</div>
+<div class="footer-credits" aria-label="Venture and creator"><p>An <a href="https://awake.vc/">Awake Venture</a>.</p><p>Built by <a href="https://AmitRathore.com/">Amit Rathore</a>.</p></div>
+</div>
+</footer>
+</body>
+</html>
