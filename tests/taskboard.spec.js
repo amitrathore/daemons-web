@@ -28,7 +28,7 @@ async function fixture(page){
 }
 test('native board has collapsed results, progress, queue controls and usable mobile layout',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
- for(const name of ['Queued','In progress','Needs attention','Finished'])await expect(page.getByRole('region',{name,exact:true})).toBeVisible();
+ for(const name of ['Queued','In progress','Needs review','Finished'])await expect(page.getByRole('region',{name,exact:true})).toBeVisible();
  await expect(page.getByText('Old progress should stay hidden',{exact:true})).toHaveCount(0);expect(state.reads).toBe(0);await expect(page.getByText('A completed brief that starts collapsed',{exact:true})).toHaveCount(0);
  await expect(page.getByText('Comparing experience and local relationships',{exact:true})).toBeVisible();
  await page.locator('[data-card="w2"] > summary').click();await expect(page.getByRole('dialog',{name:'Task details'})).toBeVisible();await page.locator('[data-card-id="w2"] [data-move="top"]').focus();await page.keyboard.press('Enter');

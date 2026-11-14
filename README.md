@@ -156,3 +156,8 @@ Existing grants are not widened.
 The public `/a2a/` page explains A2A task handoffs with responsive diagrams, an
 example workflow, permission boundaries and an A2A/MCP comparison. Connection
 details are expandable. Public and console footers link to the guide.
+
+The task board groups Approval and Input under **Needs you**. Input requests show
+a checkpoint and an operator reply form; replying queues a fresh attempt. Failed
+and interrupted tasks remain in **Needs review**. Draft replies survive polling
+and recoverable errors; the embed directs people to the console to answer.

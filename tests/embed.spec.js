@@ -1,16 +1,17 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 const daemon='33333333-3333-4333-8333-333333333333',connection='44444444-4444-4444-8444-444444444444';
-async function host(page,{viewer=false}={}){
+async function host(page,{viewer=false,input=false}={}){
  await page.route('**/embed/v1?**',async route=>route.fulfill({contentType:'text/html',body:await readFile('app/embed/v1.html','utf8')}));
  await page.route('**/embed-test',route=>route.fulfill({contentType:'text/html',headers:{'Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; frame-src 'self'"},body:`<!doctype html><html><body><h1>Comic remains visible</h1><intergraph-daemons label="Work with test Daemon"></intergraph-daemons><script type="module">
  import '/embed/component-v1.js';
- window.calls=[];let tasks=[];const panel=document.querySelector('intergraph-daemons');
+ window.calls=[];let tasks=${input?JSON.stringify([{id:"input-task",input:{task:"Research audience"},status:"awaiting_input"}]):"[]"};const panel=document.querySelector('intergraph-daemons');
  panel.contextProvider=()=>({title:'Reviewed strip',url:location.origin+'/comic',text:'An alternative ending.'});
  panel.transport=async(operation,args)=>{window.calls.push({operation,args});if(operation==='status')return {eligible:true,game_id:'11111111-1111-4111-8111-111111111111',frame_origin:location.origin,default_daemon_id:'${daemon}'};if(operation==='start')return {authorization_url:location.origin+'/connect-game?request=fixture'};
  if(args.operation==='list')return {items:[{id:'${daemon}',connection_id:'${connection}',access_role:'${viewer?'viewer':'operator'}',can_submit:${!viewer},published_revision:1,published_definition:{name:'Test Daemon',instructions:'Only approved test work.'}}]};
  if(args.operation==='submit'){tasks=[{id:'task1',input:args.input,status:'queued'}];return tasks[0];}
- if(args.operation==='task')return {result:'The reported outcome'};
+ if(args.operation==='task')return ${input?JSON.stringify({daemon_id:'33333333-3333-4333-8333-333333333333',status:'awaiting_input',input_request:{question:'Which audience?',checkpoint:'No messages sent.'}}):JSON.stringify({result:'The reported outcome'})};
+ if(args.operation==='tasks'&&${input})return {counts:{approval:1},columns:{approval:{items:tasks,next_cursor:null}}};
  if(args.operation==='tasks')return {counts:{queued:tasks.length,working:0,attention:0,finished:0},columns:{queued:{items:tasks,next_cursor:null},working:{items:[],next_cursor:null},attention:{items:[],next_cursor:null},finished:{items:[],next_cursor:null}}};return {};};
  </script></body></html>`}));
  await page.goto('/embed-test');await page.getByRole('button',{name:'Work with test Daemon'}).click();return page.frameLocator('iframe');
@@ -77,4 +78,14 @@ test('Connected apps lists existing connections and disconnects through the comp
  await page.getByRole('button',{name:'Disconnect app',exact:true}).click();
  await expect(page.getByText('No connected apps yet.',{exact:false})).toBeVisible();
  expect(disconnected).toBe(true);
+});
+
+
+test('embedded input tasks show the question and direct replies to the console',async({page})=>{
+ const panel=await host(page,{viewer:true,input:true});
+ await expect(panel.getByRole('heading',{name:'Needs you · 1'})).toBeVisible();
+ await expect(panel.getByText('Input',{exact:true})).toBeVisible();
+ await panel.getByText('Research audience',{exact:true}).click();
+ await expect(panel.getByText('Which audience?',{exact:true})).toBeVisible();
+ await expect(panel.getByRole('link',{name:'Answer in the Daemons console ↗'})).toHaveAttribute('href','https://app.daemons.ai/daemons/33333333-3333-4333-8333-333333333333');
 });
