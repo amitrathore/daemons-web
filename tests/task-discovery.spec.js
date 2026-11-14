@@ -38,7 +38,7 @@ test('assistant task discovery policy is per connection and defaults to approval
  const state=await fixture(page);await page.goto(`/daemons/${id}`);await page.getByRole('link',{name:'Settings',exact:true}).click();
  const select=page.locator('#task-discovery-settings select');await expect(select).toHaveValue('take_approval');await expect(page.locator('#task-discovery')).toContainText('Add to waiting list queues it');
  await select.selectOption('run_freely');await page.locator('#task-discovery [data-save="connection1"]').click();await expect.poll(()=>state.writes.length).toBe(1);await expect(select).toHaveValue('run_freely');expect(state.writes[0].mode).toBe('run_freely');
- await page.getByRole('link',{name:'Tasks',exact:true}).click();await expect(page.getByRole('region',{name:'Needs approval'})).toBeVisible();await page.locator('[data-card="proposal"] > summary').click();await expect(page.getByText('Suggested by Quincy')).toBeVisible();
+ await page.getByRole('link',{name:'Tasks',exact:true}).click();await expect(page.getByRole('region',{name:'Needs you'})).toBeVisible();await page.locator('[data-card="proposal"] > summary').click();await expect(page.getByText('Suggested by Quincy')).toBeVisible();
  await page.getByRole('button',{name:'Approve and queue'}).click();await expect(page.locator('[data-column="queued"] [data-card-id="proposal"]')).toBeVisible();expect(state.writes.at(-1)).toBe('work/proposal/approve-discovery');
 });
 

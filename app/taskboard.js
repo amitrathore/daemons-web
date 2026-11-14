@@ -6,13 +6,13 @@ export const disposeBoard=()=>cleanup();
 export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,notify,esc,renderTask,resultView,onUpdate}) {
   disposeBoard();
   const root=document.querySelector('#tasks'), grid=root.querySelector('.task-board');
-  const labels={approval:'Needs approval',queued:'Queued',working:'In progress',attention:'Needs attention',finished:'Finished'};
-  const empty={approval:'No proposals to review.',queued:'No tasks waiting.',working:'No tasks in progress.',attention:'Nothing needs attention.',finished:'No finished tasks.'};
-  const status={awaiting_approval:'Needs approval',queued:'Waiting for an assistant',working:'In progress',failed:'Failed',attention_required:'Needs your review',succeeded:'Completed',cancelled:'Cancelled',rejected:'Dismissed'};
+  const labels={approval:'Needs you',queued:'Queued',working:'In progress',attention:'Needs review',finished:'Finished'};
+  const empty={approval:'No approvals or questions waiting.',queued:'No tasks waiting.',working:'No tasks in progress.',attention:'Nothing needs review.',finished:'No finished tasks.'};
+  const status={awaiting_approval:'Approval',awaiting_input:'Input',queued:'Waiting for an assistant',working:'In progress',failed:'Failed',attention_required:'Needs review',succeeded:'Completed',cancelled:'Cancelled',rejected:'Dismissed'};
   const pageDepth=Object.fromEntries(Object.keys(labels).map(k=>[k,1]));
   const normalizeBoard=board=>{board.columns??={};board.counts??={};for(const key of Object.keys(labels)){board.columns[key]??={items:[],next_cursor:null};board.counts[key]??=0;}return board;};
   let state=normalizeBoard(initial), busy=false, dead=false;
-  const detailsCache=new Map(),activityCache=new Map(),movingDialogs=new WeakSet();
+  const detailsCache=new Map(),activityCache=new Map(),movingDialogs=new WeakSet(),replyDrafts=new Map();
   const safe=fn=>async e=>{try{await fn(e);}catch(err){notify(err.message);}};
   grid.innerHTML=Object.entries(labels).map(([key,label])=>`<section class="board-column" data-column="${key}" aria-label="${label}"><h3>${label} <span class="column-count"></span></h3><div class="board-cards"></div><p class="column-empty"></p><button class="secondary board-more" data-more="${key}" hidden>More ${label.toLowerCase()} tasks</button></section>`).join('');
   function activeKey(){const el=document.activeElement;return el?.closest('[data-card-id]')?{id:el.closest('[data-card-id]').dataset.cardId,move:el.dataset.move,action:el.dataset.action,summary:el.tagName==='SUMMARY'}:null;}
@@ -63,9 +63,14 @@ export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,
     const open=[...container.querySelectorAll('details[open]')].map(d=>d.querySelector('summary')?.textContent);
     const eventHTML=events.items.map(e=>`<div class="list-row"><strong>${esc(e.type.replace('work.','').replaceAll('_',' '))}</strong><p class="helper">${esc(new Date(e.created_at).toLocaleString())}</p>${e.type==='work.progress'?resultView(e.data.report):''}</div>`).join('');
     const approval=w.status==='awaiting_approval'&&canManage?`<section class="callout discovery-review"><h3>Assistant-discovered task</h3><p>It has not started. Approve it to add it to the task queue, or dismiss it.</p><div class="actions"><button type="button" data-discovery-decision="approve" data-work-id="${taskId}">Approve and queue</button><button type="button" class="secondary" data-discovery-decision="dismiss" data-work-id="${taskId}">Dismiss</button></div></section>`:'';
-    const html=approval+renderTask(w)+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${canOperate&&['succeeded','cancelled','rejected'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
+    const request=w.input_request,draftKey=request?`${taskId}:${request.id}`:null,draft=replyDrafts.get(draftKey);
+    const input=w.status==='awaiting_input'&&request?`<section class="callout input-request"><h3>${esc(request.question)}</h3><p class="result-text">${esc(request.checkpoint)}</p>${canOperate?`<form data-input-reply data-work-id="${taskId}" data-request-id="${esc(request.id)}"><label>Your answer<textarea data-answer required maxlength="8000" rows="4">${esc(draft?.answer||'')}</textarea></label><p class="helper">Your reply queues a fresh attempt. A connected worker must pick it up; it does not start immediately.</p><p data-answer-error role="alert" hidden></p><button type="submit">Reply and queue task</button></form>`:'<p>An operator or manager can answer this question.</p>'}</section>`:'';
+    const html=approval+input+renderTask(w)+`<details data-input-history="${taskId}"><summary>Questions and answers</summary><div>Open to read earlier questions and replies.</div></details>`+`<details class="task-progress"><summary>Progress history</summary><div class="progress-events">${eventHTML||'<p>No progress messages yet.</p>'}</div><button class="secondary" data-events="${taskId}" ${events.next_cursor?'':'hidden'}>More progress</button></details>${canOperate&&['succeeded','cancelled','rejected'].includes(w.status)?`<button class="secondary" data-archive="${taskId}">Archive finished task</button>`:''}`;
     // Rebuild only when the task changed; keep nested expansions on refresh.
-    container.innerHTML=html;for(const d of container.querySelectorAll('details'))if(open.includes(d.querySelector('summary')?.textContent))d.open=true;
+    const focused=container.querySelector('[data-answer]')===document.activeElement,selection=focused?document.activeElement.selectionStart:null;
+    container.innerHTML=html;
+    if(focused&&container.querySelector('[data-answer]')){const field=container.querySelector('[data-answer]');field.focus({preventScroll:true});field.setSelectionRange(selection,selection);}
+    for(const d of container.querySelectorAll('details'))if(open.includes(d.querySelector('summary')?.textContent))d.open=true;
     detailsCache.set(taskId,{updated:card.dataset.updated,html});activityCache.set(taskId,events);
   }
   async function fetchBoard(){
@@ -87,8 +92,29 @@ export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,
   }
   root.addEventListener('toggle',safe(async e=>{
     const d=e.target;if(d.matches('details[data-card]')&&d.open){const card=d.closest('[data-card-id]'),dialog=card.querySelector('dialog');if(!dialog.open)dialog.showModal();await detail(card);}
+    if(d.matches('[data-input-history]')&&d.open){
+      const render=rows=>rows.map(x=>`<div class="list-row"><h3>${esc(x.question)}</h3><p class="result-text">${esc(x.checkpoint)}</p><p class="result-text"><strong>${x.resolution==='cancelled'?'Cancelled':x.answer?'Answer':'Waiting for an answer'}</strong>${x.answer?`: ${esc(x.answer)}`:''}</p></div>`).join('');
+      const box=d.querySelector('div');const r=await api(`work/${d.dataset.inputHistory}/input-history`);
+      box.innerHTML=render(r.items)||'<p>No questions yet.</p>';
+      let cursor=r.next_cursor;
+      if(cursor){const more=document.createElement('button');more.textContent='More questions and answers';more.className='secondary';more.onclick=safe(async()=>{more.disabled=true;try{const next=await api(`work/${d.dataset.inputHistory}/input-history?cursor=${encodeURIComponent(cursor)}`);more.insertAdjacentHTML('beforebegin',render(next.items));cursor=next.next_cursor;more.hidden=!cursor;}finally{more.disabled=false;}});box.append(more);}
+    }
     if(d.matches('[data-starting]')&&d.open){const r=await post(`daemons/${id}/context`,{work_id:d.dataset.starting,attempt_id:d.dataset.attempt});d.querySelector('div').innerHTML=r.starting_context?r.starting_context.items.map(item=>`<div class="list-row"><strong>${esc(item.title||'Earlier task')}</strong><p class="result-text">${esc(item.content||item.excerpt||'')}</p></div>`).join('')||'<p>No saved context items.</p>':'<p>No starting context was recorded for this older attempt.</p>';}
   }),true);
+  root.addEventListener('input',e=>{
+    if(!e.target.matches('[data-answer]'))return;
+    const form=e.target.closest('[data-input-reply]');
+    replyDrafts.set(`${form.dataset.workId}:${form.dataset.requestId}`,{answer:e.target.value,key:crypto.randomUUID()});
+  });
+  root.addEventListener('submit',safe(async e=>{
+    const form=e.target.closest('[data-input-reply]');if(!form)return;e.preventDefault();
+    const key=`${form.dataset.workId}:${form.dataset.requestId}`,field=form.querySelector('[data-answer]'),button=form.querySelector('button'),error=form.querySelector('[data-answer-error]');
+    const draft=replyDrafts.get(key)||{answer:field.value,key:crypto.randomUUID()};replyDrafts.set(key,draft);
+    button.disabled=true;error.hidden=true;
+    try{await post(`work/${form.dataset.workId}/answer-input`,{request_id:form.dataset.requestId,answer:draft.answer},{'Idempotency-Key':draft.key});replyDrafts.delete(key);detailsCache.delete(form.dataset.workId);notify('Reply saved. The task is queued for a fresh attempt.');await refresh();}
+    catch(err){error.textContent=err.message;error.hidden=false;}
+    finally{button.disabled=false;}
+  }));
   root.addEventListener('click',safe(async e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.hasAttribute('data-close-task')){b.closest('dialog').close();return;}

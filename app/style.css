@@ -196,3 +196,7 @@ dialog{color:var(--text);background:var(--surface);border:1px solid var(--line);
 
 /* Assistant consent keeps requested abilities readable without a wall of text. */
 .consent-permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:.65rem 2rem;padding-left:1.2rem;margin:1rem 0 1.5rem}.consent-permissions li{padding-left:.2rem}
+
+.input-request h3{font-size:18px;line-height:1.5;margin:0 0 .75rem;overflow-wrap:anywhere}
+.input-request form{margin-top:1rem}.input-request textarea{width:100%;min-height:120px}
+.input-request [role=alert]{color:var(--danger);font-weight:650;overflow-wrap:anywhere}
