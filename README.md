@@ -33,7 +33,7 @@ STATIC_ROOT=. PORT=8097 npm start
 
 The vanilla JavaScript console lives in `app/`. It uses the Clojure control API at
 https://api.daemons.ai for Intergraph login, Daemon definitions/versioning, work,
-activity, OAuth consent, and assistant access revocation. No credentials belong
+activity, OAuth consent, and connected-assistant revocation. No credentials belong
 in this repository or frontend configuration. The server sets security headers
 and serves the application shell for console routes.
 

@@ -15,6 +15,7 @@ async function fixture(page){
 }
 test('active connections sort by recent use, expired/revoked collapse below, and duplicate names have distinct IDs',async({page})=>{
  await fixture(page);await page.goto('/connections');
+ await expect(page.getByRole('heading',{level:1,name:'Connected assistants',exact:true})).toBeVisible();await expect(page.getByRole('navigation',{name:'Main'}).getByRole('link',{name:'Connected assistants',exact:true})).toHaveAttribute('href','/connections');
  const active=page.locator('[data-connection-group=active]');await expect(active.locator('[data-connection]').nth(0)).toHaveAttribute('data-connection',b);await expect(active.locator('[data-connection]').nth(1)).toHaveAttribute('data-connection','55555555-5555-4555-8555-555555555555');await expect(active.locator('[data-connection]').nth(2)).toHaveAttribute('data-connection',a);
  await expect(page.locator('[data-connection-group=expired]')).not.toHaveAttribute('open','');await expect(page.locator('[data-connection-group=revoked]')).not.toHaveAttribute('open','');
  await expect(page.getByText('123456781',{exact:true})).toBeVisible();await expect(page.getByText('123456782',{exact:true})).toBeVisible();await expect(page.getByText('Not used yet',{exact:false})).toBeVisible();
