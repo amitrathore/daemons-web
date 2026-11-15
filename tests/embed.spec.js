@@ -71,7 +71,12 @@ test('Connected apps lists existing connections and disconnects through the comp
   else if(path===`game-connections/${connection}`){expect(req.method()).toBe('DELETE');expect(req.headers()['x-csrf-token']).toBe('csrf');disconnected=true;result={status:'disconnected'};}
   await route.fulfill({json:result});
  });
- await page.goto('/game-connections');
+ await page.goto('/');
+ await expect(page.getByRole('navigation',{name:'Main'}).getByRole('link',{name:'Connected apps',exact:true})).toHaveCount(0);
+ const footerLink=page.getByRole('contentinfo').getByRole('navigation',{name:'Resources'}).getByRole('link',{name:'Connected apps',exact:true});
+ await expect(footerLink).toHaveAttribute('href','/game-connections');
+ await footerLink.click();
+ await expect(page).toHaveURL(/\/game-connections$/);
  await expect(page.getByRole('heading',{name:'Connected apps',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'OVERHEAD',exact:true})).toBeVisible();
  await expect(page.getByText('Connected assistants carry out the tasks.',{exact:false})).toBeVisible();
