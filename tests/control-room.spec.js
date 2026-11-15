@@ -8,7 +8,7 @@ async function fixture(page){
   const req=route.request(),p=new URL(req.url()).pathname.slice(4);let data;
   const daemon={id,draft:definition,revision:1,published_revision:1,paused:false};
   if(p==='session')data={account:{email:'design@example.test'},csrf:'csrf'};
-  else if(p==='control-room')data=[{...daemon,appearance:state.appearance,work_summary:{counts:{approval:2,queued:3,working:1,attention:1},updated_at:new Date().toISOString()}},{...daemon,id:'22222222-2222-4222-8222-222222222222',draft:{...definition,name:'Weekly creative partner',purpose:'Turn scattered ideas into a clear plan for the week.'},appearance:{icon:'spark',color:'violet'},work_summary:{counts:{queued:2,working:0,attention:0}}},{...daemon,id:'33333333-3333-4333-8333-333333333333',draft:{...definition,name:'Research scout',purpose:'Find useful signals, save the evidence, and connect the dots.'},appearance:{icon:'search',color:'mint'},work_summary:{counts:{queued:0,working:1,attention:0}}}];
+  else if(p==='control-room')data=[{...daemon,appearance:state.appearance,work_summary:{counts:{approval:2,queued:3,working:1,attention:1},completed:4,updated_at:new Date().toISOString()}},{...daemon,id:'22222222-2222-4222-8222-222222222222',draft:{...definition,name:'Weekly creative partner',purpose:'Turn scattered ideas into a clear plan for the week.'},appearance:{icon:'spark',color:'violet'},work_summary:{counts:{queued:2,working:0,attention:0},completed:0}},{...daemon,id:'33333333-3333-4333-8333-333333333333',draft:{...definition,name:'Research scout',purpose:'Find useful signals, save the evidence, and connect the dots.'},appearance:{icon:'search',color:'mint'},work_summary:{counts:{queued:0,working:1,attention:0}}}];
   else if(p===`daemons/${id}`)data=daemon;
   else if(p.endsWith('/appearance')){if(req.method()==='PUT'){state.writes++;expect(req.headers()['x-csrf-token']).toBe('csrf');if(state.conflict){state.conflict=false;state.appearance={icon:'leaf',color:'mint',revision:1};return route.fulfill({status:409,json:{error:'Appearance changed. Refresh before saving again.'}});}const b=req.postDataJSON();expect(b.expected_revision).toBe(state.appearance.revision);state.appearance={icon:b.icon,color:b.color,revision:b.expected_revision+1};}data=state.appearance;}
   else if(p==='connections')data=[{daemon_ids:[id],scopes:['work:execute'],expires_at:'2099-01-01',revoked:false}];
@@ -43,4 +43,14 @@ test('appearance persists independently; conflicts refresh without a second writ
  await page.getByRole('button',{name:'Add a task',exact:true}).click();await expect(page.getByLabel('Task',{exact:true})).toHaveValue('Keep this thought');state.fail=true;await page.getByRole('button',{name:'Add task',exact:true}).click();await expect(page.locator('#notice')).toContainText('Try again shortly');await expect(page.getByLabel('Task',{exact:true})).toHaveValue('Keep this thought');await page.keyboard.press('Escape');
  await page.getByRole('link',{name:'Tasks',exact:true}).click();await expect(page.locator('#notice')).toBeHidden({timeout:8000});
  for(const theme of ['light','dark']){await page.getByRole('combobox',{name:'Appearance'}).selectOption(theme);for(const width of [1440,768,375]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await expect(page.getByRole('link',{name:'Settings',exact:true})).toBeInViewport();await page.screenshot({path:`test-results/daemon-room-${theme}-${width}.png`,fullPage:true});}}
+});
+
+test('completed count is secondary, includes known zero, and omits unavailable values',async({page})=>{
+ await fixture(page);await page.goto('/');
+ const cards=page.locator('.daemon-card');
+ await expect(cards.nth(0).locator('.card-completed')).toHaveText('Completed · 4');
+ await expect(cards.nth(1)).toContainText('Research scout');
+ await expect(cards.nth(1).locator('.card-completed')).toHaveCount(0);
+ await expect(cards.nth(2).locator('.card-completed')).toHaveText('Completed · 0');
+ await expect(cards.nth(0).locator('.card-counts > span')).toHaveCount(4);
 });

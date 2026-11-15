@@ -64,7 +64,7 @@ test('approved access is not presented as a live assistant',async({page})=>{
   await fixture(page,{connections});await page.goto(`/daemons/${id}`);
   await expect(page.getByRole('heading',{name:'Next: give your Daemon its first task'})).toBeVisible();
   await expect(page.getByText('Approval alone does not mean the assistant is currently running.',{exact:false})).toBeVisible();
-  await page.goto('/connections');
+  await page.goto('/connections?group=connection');
   await page.getByText('Permissions and Daemons',{exact:true}).click();await expect(page.getByText('Pick up tasks and send progress and results',{exact:true})).toBeVisible();
   await expect(page.getByRole('link',{name:'Company researcher',exact:true})).toBeVisible();
   await expect(page.getByText('work:execute',{exact:false})).not.toBeVisible();
