@@ -166,3 +166,5 @@ The Tools tab labels connected accounts by service and account identity, explain
 unfinished setup separately, and uses Choose actions / Save action choices / Enable
 actions for the existing draft/publication flow. Account names load separately
 without blocking access controls; permission choices remain explicit.
+
+Allowed actions and the action picker group permissions by the exact connected account and access binding. Account names, service summaries, action descriptions, and counts help distinguish tools. Select all / Unselect all work per account or across the picker; they change checkboxes only. Saving and enabling remain explicit.
