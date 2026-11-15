@@ -1,6 +1,8 @@
 // Tool credentials stay on the server; this module receives account and permission summaries.
 const services={drive:'Google Drive',gmail:'Gmail','intergraph-mcp':'Intergraph Player','custom-mcp':'MCP server',slack:'Slack',notion:'Notion',calendar:'Google Calendar',hubspot:'HubSpot'};
 const actionNames={'drive.read':'Read a document','drive.search':'Search documents','gmail.read':'Read email','gmail.search':'Search email','intergraph:mom_read_game_state':'Read game state','intergraph:mom_read_inbox':'Read inbox','intergraph:mom_ack_inbox':'Acknowledge inbox','intergraph:mom_send_event_to_game_master':'Send an event to the Game Master'};
+const serviceDescriptions={drive:'Find and read documents in this account.',gmail:'Search and read email in this account.','intergraph-mcp':'Use this player’s approved access within their game.','custom-mcp':'Use the actions provided by this connected MCP server.'};
+const actionDescriptions={'drive.read':'Read the contents of a document.','drive.search':'Find documents by a search query.','gmail.read':'Read an email message.','gmail.search':'Find email messages by a search query.','intergraph:mom_read_game_state':'View the current state of the game.','intergraph:mom_read_inbox':'Read messages sent to this player.','intergraph:mom_ack_inbox':'Mark inbox messages as acknowledged.','intergraph:mom_send_event_to_game_master':'Send a request or action to the game using this player’s permissions.'};
 export function mountTools({root,id,api,post,esc,notify,session}){
  let state,available=[],loaded=false;
  const summaries=new Map(),errors=new Map();
@@ -35,10 +37,34 @@ export function mountTools({root,id,api,post,esc,notify,session}){
    }
   }));
  }
+ const groupKey=a=>JSON.stringify([a.binding_id,a.connection_id]);
+ const actionDescription=a=>actionDescriptions[a.name]||a.description||'Use this action with the connected account’s approved permissions.';
+ function groups(actions){
+  const grouped=new Map();
+  actions.forEach((a,index)=>{const k=groupKey(a);if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push({a,index});});
+  return [...grouped.values()];
+ }
+ function groupHeader(a,count,all){
+  const account=accountFor(a),title=account?`${account.service==='intergraph-mcp'?'Intergraph Player · ':''}${accountName(account)}`:actionAccount(a);
+  const duplicates=all.filter(rows=>actionAccount(rows[0].a)===actionAccount(a)).length>1;
+  return `<div class="tool-action-heading"><h3>${esc(title)}</h3><span class="badge">${count} action${count===1?'':'s'}</span></div><p class="helper">${esc(serviceDescriptions[account?.service]||'Actions approved for this connected account.')}${duplicates?` · Connection ${esc((a.connection_id||'').slice(0,8))} · Access ${esc((a.binding_id||'').slice(0,8))}`:''}</p>`;
+ }
+ function renderActionGroups(actions,editable=false){
+  const all=groups(actions);
+  return all.map(rows=>{
+   const first=rows[0].a,header=`<div data-action-group="${esc(groupKey(first))}">${groupHeader(first,rows.length,all)}</div>`;
+   if(editable)return `<fieldset class="tool-action-group"><legend class="sr-only">Actions for ${esc(actionAccount(first))}</legend>${header}<div class="actions tool-action-selection"><button type="button" class="secondary" data-select-actions="all" data-action-scope="${esc(groupKey(first))}">Select all</button><button type="button" class="secondary" data-select-actions="none" data-action-scope="${esc(groupKey(first))}">Unselect all</button></div><div class="tool-action-options">${rows.map(({a,index})=>`<label class="check"><input name="action" type="checkbox" value="${index}" ${selected().has(key(a))?'checked':''}><span><strong>${esc(actionName(a))}</strong><small>${esc(actionDescription(a))}</small></span></label>`).join('')}</div></fieldset>`;
+   return `<section class="tool-action-group">${header}<ul class="tool-action-list">${rows.map(({a})=>`<li><strong>${esc(actionName(a))}</strong><span>${esc(actionDescription(a))}</span></li>`).join('')}</ul></section>`;
+  }).join('');
+ }
  function updateAccountLabels(){
   const list=root.querySelector('[data-published-actions]');
-  if(list)list.innerHTML=(state.published||[]).map(a=>`<li><strong>${esc(actionName(a))}</strong><span>${esc(actionAccount(a))}</span></li>`).join('');
-  root.querySelectorAll('[data-action-account]').forEach(el=>{const a=available[Number(el.dataset.actionAccount)];if(a)el.textContent=actionAccount(a);});
+  if(list)list.innerHTML=renderActionGroups(state.published||[]);
+  const all=groups(available);
+  root.querySelectorAll('[data-actions] [data-action-group]').forEach(el=>{
+   const rows=all.find(rows=>groupKey(rows[0].a)===el.dataset.actionGroup);
+   if(rows){el.innerHTML=groupHeader(rows[0].a,rows.length,all);const legend=el.closest('.tool-action-group')?.querySelector('legend');if(legend)legend.textContent='Actions for '+actionAccount(rows[0].a);}
+  });
  }
  function audience(c){
   if(c.status==='pending')return 'No accounts have been approved through this setup yet.';
@@ -79,8 +105,8 @@ export function mountTools({root,id,api,post,esc,notify,session}){
   const manage=state.can_manage,published=state.published||[],changed=state.revision>0&&state.revision!==state.published_revision;
   root.innerHTML=`<section class="panel"><h2>Connected accounts</h2><p>Choose the accounts this Daemon can use and which assistants may use them. Toolisman handles the account connection.</p><p data-tool-status role="status" aria-live="polite"></p>${!state.configured?'<p class="callout">Account connections are not available on this installation yet.</p>':''}<div data-tool-connections></div>
   ${manage&&state.configured?`<details data-connect-section ${state.connections.length?'':'open'}><summary>Connect another account</summary><form data-connect><h3 data-connect-title>Connect an account</h3><p class="helper" data-renew-note>First choose who may use the account. You’ll choose the account in Toolisman, then enable its actions here.</p><label>Who can use these tools?<select name="audience_mode"><option value="selected">Only assistants I choose</option><option value="all_approved">Any approved assistant, including future connections</option></select></label><fieldset><legend>Choose assistants</legend>${state.executors.map(e=>`<label class="check"><input type="checkbox" name="executor" value="${esc(e.id)}">${esc(e.name)} · ${esc(e.id.slice(0,8))}${e.scopes.includes('tools:use')?'':' · reconnect this assistant to allow tool use'}</label>`).join('')||'<p class="helper">No approved assistants yet. You can connect the account now and choose assistants later.</p>'}</fieldset><input type="hidden" name="binding_id"><div class="actions"><button type="submit">Choose accounts in Toolisman</button><button type="button" class="secondary" data-new-connection hidden>Start a new connection</button></div></form></details>`:''}</section>
-  <section class="panel"><h2>Allowed actions</h2><p>${published.length?`${published.length} action${published.length===1?' is':'s are'} enabled for new task attempts.`:state.connections.some(c=>c.status==='active')?'No actions enabled yet. Choose actions below, then enable them for tasks.':'No actions enabled yet. Finish connecting an account to choose its actions.'}</p><p class="helper">Assistants can use tools only while working on an assigned task.</p>${changed?'<p class="callout">You have saved changes that are not enabled yet.</p>':''}<ul class="tool-action-list" data-published-actions>${published.map(a=>`<li><strong>${esc(actionName(a))}</strong><span>${esc(actionAccount(a))}</span></li>`).join('')}</ul>
-  ${manage&&state.configured?'<button class="secondary" data-discover>Choose actions</button><form data-policy hidden><fieldset><legend>Actions this Daemon may use</legend><div data-actions></div></fieldset><button>Save action choices</button></form>':''}
+  <section class="panel"><h2>Allowed actions</h2><p>${published.length?`${published.length} action${published.length===1?' is':'s are'} enabled for new task attempts.`:state.connections.some(c=>c.status==='active')?'No actions enabled yet. Choose actions below, then enable them for tasks.':'No actions enabled yet. Finish connecting an account to choose its actions.'}</p><p class="helper">Assistants can use tools only while working on an assigned task.</p>${changed?'<p class="callout">You have saved changes that are not enabled yet.</p>':''}<div data-published-actions>${renderActionGroups(published)}</div>
+  ${manage&&state.configured?'<button class="secondary" data-discover>Choose actions</button><form data-policy hidden><p class="helper">Select the actions to allow for each account.</p><div class="actions tool-action-selection"><button type="button" class="secondary" data-select-actions="all">Select all</button><button type="button" class="secondary" data-select-actions="none">Unselect all</button></div><div data-actions></div><button>Save action choices</button></form>':''}
   ${manage&&changed?'<button data-publish>Enable actions</button>':''}
   ${!manage?'<p class="helper">A Daemon manager can change the allowed actions. Account holders approve access to their own accounts.</p>':''}
   <details><summary>When do changes take effect?</summary><p class="helper">Enabling actions applies to new task attempts. Work already in progress keeps its current action list. Disconnecting an account blocks further calls immediately.</p><p class="helper">Enabled version: ${state.published_revision===null?'None':esc(state.published_revision)} · Saved version: ${esc(state.revision)}</p></details></section><section class="panel"><h2>Recent tool activity</h2><button class="secondary" data-activity>Show activity</button><div data-tool-activity></div></section>`;
@@ -92,8 +118,13 @@ export function mountTools({root,id,api,post,esc,notify,session}){
    form.addEventListener('submit',e=>{e.preventDefault();action(async()=>{const data=new FormData(e.currentTarget);message('Opening Toolisman to choose accounts…');const r=await post(path('tools-connect'),{audience_mode:data.get('audience_mode'),executors:data.get('audience_mode')==='all_approved'?[]:data.getAll('executor'),...(data.get('binding_id')?{binding_id:data.get('binding_id')}:{})});location.assign(r.url);});});
   }
   root.querySelector('[data-discover]')?.addEventListener('click',()=>action(async()=>{
-   message('Loading the actions approved for your accounts…');const results=await Promise.all(state.connections.filter(c=>c.status==='active').map(c=>api(path('tools-actions')+'?binding_id='+encodeURIComponent(c.id))));available=results.flatMap(r=>r.actions);const picked=selected();root.querySelector('[data-actions]').innerHTML=available.map((a,i)=>`<label class="check"><input name="action" type="checkbox" value="${i}" ${picked.has(key(a))?'checked':''}><span><strong>${esc(actionName(a))}</strong> · <span data-action-account="${i}">${esc(actionAccount(a))}</span><small>${esc(a.description||'')}</small></span></label>`).join('')||'<p>No approved actions available. You can save an empty list to remove actions from future attempts.</p>';root.querySelector('[data-policy]').hidden=false;message('Choose the actions to allow, then save and enable your choices.');
+   message('Loading the actions approved for your accounts…');const results=await Promise.all(state.connections.filter(c=>c.status==='active').map(c=>api(path('tools-actions')+'?binding_id='+encodeURIComponent(c.id))));available=results.flatMap(r=>r.actions);root.querySelector('[data-actions]').innerHTML=renderActionGroups(available,true)||'<p>No approved actions available. You can save an empty list to remove actions from future attempts.</p>';root.querySelector('[data-policy]').hidden=false;message('Choose the actions to allow, then save and enable your choices.');
   }));
+  root.querySelector('[data-policy]')?.addEventListener('click',e=>{
+   const button=e.target.closest('[data-select-actions]');if(!button)return;
+   const scope=button.hasAttribute('data-action-scope')?button.closest('.tool-action-group'):e.currentTarget;
+   scope.querySelectorAll('input[name=action]').forEach(input=>input.checked=button.dataset.selectActions==='all');
+  });
   root.querySelector('[data-policy]')?.addEventListener('submit',e=>{e.preventDefault();action(async()=>{const picks=new FormData(e.currentTarget).getAll('action').map(i=>available[Number(i)]);await post(path('tools-draft'),{expected_revision:state.revision,actions:picks.map(a=>({binding_id:a.binding_id,connection_id:a.connection_id,action:a.name}))});await load();notify('Choices saved. Select Enable actions to make them available to new attempts.');});});
   root.querySelector('[data-publish]')?.addEventListener('click',()=>action(async()=>{await post(path('tools-publish'),{expected_revision:state.revision});await load();notify('Actions enabled for new task attempts.');}));
   root.querySelector('[data-activity]').onclick=()=>action(async()=>{const r=await api(path('tools-activity'));root.querySelector('[data-tool-activity]').innerHTML=r.invocations.map(i=>`<div class="list-row"><strong>${esc(actionName({name:i.action}))}</strong><p>${esc(i.status)} · ${esc(new Date(i.created_at).toLocaleString())}</p><details><summary>Technical details</summary><small>Task ${esc(i.work_id)} · Attempt ${esc(i.attempt_id)} · Action ${esc(i.action)} · Enabled version ${esc(i.policy_revision)}</small></details></div>`).join('')||'<p>No tool calls yet.</p>';});

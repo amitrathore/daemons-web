@@ -33,7 +33,7 @@ async function fixture(page,manager=true){
 }
 test('manager reviews and publishes specific actions, then removes live access',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Choose actions'}).click();
- await page.getByLabel(/Read a document · Google Drive · Test Drive/).check();
+ await page.getByRole('checkbox',{name:/Read a document/}).check();
  await expect(page.locator('[data-room-panel="tools"] img')).toHaveCount(0);
  await page.getByRole('button',{name:'Save action choices'}).click();
  await expect(page.getByRole('button',{name:'Enable actions'})).toBeVisible();
@@ -101,4 +101,60 @@ test('Intergraph accounts are distinguished by Game and Player without role clut
  await expect(page.getByText('@amit · Game: the-js',{exact:true})).toBeVisible();
  await expect(page.locator('.tool-account-card')).not.toContainText('Roles');
  await page.screenshot({path:'test-results/friendly-tools-desktop.png',fullPage:true});
+});
+
+test('actions group by account and bulk selection preserves exact permissions without saving automatically',async({page})=>{
+ const {tools,writes}=await fixture(page);
+ const player='77777777-7777-4777-8777-777777777777',otherPlayer='88888888-8888-4888-8888-888888888888';
+ const actions=[
+  {binding_id:binding,connection_id:source,name:'drive.read',account_label:'Test Drive'},
+  {binding_id:binding,connection_id:player,name:'intergraph:mom_read_game_state',account_label:'Intergraph player amit'},
+  {binding_id:binding,connection_id:source,name:'drive.search',account_label:'Test Drive'},
+  {binding_id:binding,connection_id:player,name:'intergraph:mom_read_inbox',account_label:'Intergraph player amit'},
+  {binding_id:binding,connection_id:otherPlayer,name:'intergraph:mom_read_game_state',account_label:'Intergraph player amit'}
+ ];
+ tools.published=actions;tools.published_revision=1;tools.revision=1;tools.draft=[];
+ await page.route('https://api.daemons.ai/v1/**/tools-accounts?**',r=>r.fulfill({json:{accounts:[{id:source,service:'drive',account_label:'Test Drive'},{id:player,service:'intergraph-mcp',account_details:{game_name:'overhead-im',player_name:'amit'}},{id:otherPlayer,service:'intergraph-mcp',account_details:{game_name:'the-js',player_name:'amit'}}]}}));
+ await page.route('https://api.daemons.ai/v1/**/tools-actions?**',r=>r.fulfill({json:{actions}}));
+ let saved;
+ await page.route('https://api.daemons.ai/v1/**/tools-draft',async r=>{saved=r.request().postDataJSON();await r.fulfill({json:{}});});
+ await page.reload();
+ const enabled=page.locator('[data-published-actions]');
+ await expect(enabled.locator('.tool-action-group')).toHaveCount(3);
+ await expect(enabled.getByRole('heading',{name:'Intergraph Player · @amit · Game: overhead-im',exact:true})).toBeVisible();
+ await expect(enabled.getByRole('heading',{name:'Intergraph Player · @amit · Game: the-js',exact:true})).toBeVisible();
+ await expect(enabled.getByText('View the current state of the game.',{exact:true})).toHaveCount(2);
+ await page.getByRole('button',{name:'Choose actions',exact:true}).click();
+ const form=page.locator('[data-policy]'),groups=form.locator('.tool-action-group');
+ await expect(groups).toHaveCount(3);
+ await form.getByRole('button',{name:'Select all',exact:true}).first().click();
+ await expect(form.locator('input:checked')).toHaveCount(5);
+ await form.getByRole('button',{name:'Unselect all',exact:true}).first().click();
+ await expect(form.locator('input:checked')).toHaveCount(0);
+ const drive=groups.filter({has:page.getByRole('heading',{name:'Google Drive · Test Drive',exact:true})});
+ const overhead=groups.filter({has:page.getByRole('heading',{name:'Intergraph Player · @amit · Game: overhead-im',exact:true})});
+ await drive.getByRole('button',{name:'Select all',exact:true}).click();
+ await expect(drive.locator('input:checked')).toHaveCount(2);
+ await expect(overhead.locator('input:checked')).toHaveCount(0);
+ await overhead.getByRole('button',{name:'Select all',exact:true}).click();
+ await drive.getByRole('button',{name:'Unselect all',exact:true}).click();
+ await expect(form.locator('input:checked')).toHaveCount(2);
+ expect(saved).toBeUndefined();expect(writes.filter(w=>w.p.endsWith('/tools-publish'))).toHaveLength(0);
+ await page.screenshot({path:'test-results/grouped-tools-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'test-results/grouped-tools-mobile.png',fullPage:true});
+ await form.getByRole('button',{name:'Save action choices'}).click();
+ await expect.poll(()=>saved).toEqual({expected_revision:1,actions:actions.filter(a=>a.connection_id===player).map(a=>({binding_id:a.binding_id,connection_id:a.connection_id,action:a.name}))});
+});
+
+test('late account names update group labels without clearing selected actions',async({page})=>{
+ await fixture(page);
+ let release;const ready=new Promise(resolve=>release=resolve);
+ await page.route('https://api.daemons.ai/v1/**/tools-accounts?**',async r=>{await ready;await r.fulfill({json:{accounts:[{id:source,service:'drive',account_label:'Named account'}]}});});
+ await page.reload();await page.getByRole('button',{name:'Choose actions',exact:true}).click();
+ const form=page.locator('[data-policy]');await form.getByRole('button',{name:'Select all',exact:true}).first().click();
+ await expect(form.locator('input:checked')).toHaveCount(1);
+ release();await expect(form.getByRole('heading',{name:'Google Drive · Named account',exact:true})).toBeVisible();
+ await expect(form.locator('input:checked')).toHaveCount(1);
+ await expect(form.getByRole('group',{name:'Actions for Google Drive · Named account',exact:true})).toBeVisible();
 });
