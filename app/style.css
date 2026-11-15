@@ -200,3 +200,5 @@ dialog{color:var(--text);background:var(--surface);border:1px solid var(--line);
 .input-request h3{font-size:18px;line-height:1.5;margin:0 0 .75rem;overflow-wrap:anywhere}
 .input-request form{margin-top:1rem}.input-request textarea{width:100%;min-height:120px}
 .input-request [role=alert]{color:var(--danger);font-weight:650;overflow-wrap:anywhere}
+
+.tool-account-card{padding:14px 0;border-bottom:1px solid var(--line)}.tool-account-card .toolbar{margin-bottom:4px;gap:12px}.tool-account-card h3{margin:0;font-size:17px}.tool-account-card p{margin:5px 0}.tool-account-card .actions{margin-top:10px}.tool-account-list,.tool-action-list{list-style:none;padding:0;margin:10px 0;display:grid;gap:6px}.tool-account-list li,.tool-action-list li{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:14px}.tool-account-list li>span,.tool-action-list li>span{color:var(--muted)}.tool-reference{font-size:12px;margin-top:10px}.tool-reference summary{font-size:12px}[data-connect]{margin-top:18px}[data-connect] fieldset{margin:16px 0}[data-connect-section]>summary{font-weight:700}
