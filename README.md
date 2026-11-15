@@ -161,3 +161,8 @@ The task board groups Approval and Input under **Needs you**. Input requests sho
 a checkpoint and an operator reply form; replying queues a fresh attempt. Failed
 and interrupted tasks remain in **Needs review**. Draft replies survive polling
 and recoverable errors; the embed directs people to the console to answer.
+
+The Tools tab labels connected accounts by service and account identity, explains
+unfinished setup separately, and uses Choose actions / Save action choices / Enable
+actions for the existing draft/publication flow. Account names load separately
+without blocking access controls; permission choices remain explicit.
