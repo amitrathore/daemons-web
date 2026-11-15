@@ -168,3 +168,10 @@ actions for the existing draft/publication flow. Account names load separately
 without blocking access controls; permission choices remain explicit.
 
 Allowed actions and the action picker group permissions by the exact connected account and access binding. Account names, service summaries, action descriptions, and counts help distinguish tools. Select all / Unselect all work per account or across the picker; they change checkboxes only. Saving and enabling remain explicit.
+
+The Daemons overview keeps Queued, In progress, Needs you, and Needs review prominent.
+A secondary Completed count shows successful non-archived tasks only; cancelled
+and rejected tasks are not counted. Older API responses without the count omit
+the secondary line rather than displaying an assumed zero.
+
+Connected assistants defaults to grouping connections by Daemon. The Connection view manages nicknames and connection-wide revocation. `?group=daemon` and `?group=connection` preserve the chosen view.

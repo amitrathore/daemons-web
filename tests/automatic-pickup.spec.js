@@ -30,7 +30,7 @@ test('owner enables/disables pickup, sees mirrored policy, and a conflict never 
  await expect(toggle).not.toBeChecked();await expect(page.getByText('Not checked yet')).toBeVisible();
  await page.getByRole('button',{name:'Add a task',exact:true}).click();await page.getByLabel('Task',{exact:true}).fill('Keep my task draft');await page.getByRole('button',{name:'Close task composer'}).click();
  await toggle.check();await expect(toggle).toBeChecked();await expect(page.getByLabel('Task',{exact:true})).toHaveValue('Keep my task draft');
- await page.goto('/connections');await page.getByText('Automatic pickup by Daemon',{exact:true}).click();await expect(toggle).toBeChecked();
+ await page.goto('/connections?group=connection');await page.getByText('Automatic pickup by Daemon',{exact:true}).click();await expect(toggle).toBeChecked();
  await toggle.uncheck();await expect(toggle).not.toBeChecked();
  await page.goto(`/daemons/${id}#settings`);await expect(toggle).not.toBeChecked();
  state.conflict=true;await toggle.check();await expect(page.locator('#notice')).toContainText('Automatic pickup changed');await expect(toggle).not.toBeChecked();expect(state.puts).toBe(3);
