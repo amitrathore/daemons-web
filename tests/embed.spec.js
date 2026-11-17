@@ -5,7 +5,7 @@ async function host(page,{viewer=false,input=false}={}){
  await page.route('**/embed/v1?**',async route=>route.fulfill({contentType:'text/html',body:await readFile('app/embed/v1.html','utf8')}));
  await page.route('**/embed-test',route=>route.fulfill({contentType:'text/html',headers:{'Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; frame-src 'self'"},body:`<!doctype html><html><body><h1>Comic remains visible</h1><intergraph-daemons label="Work with test Daemon"></intergraph-daemons><script type="module">
  import '/embed/component-v1.js';
- window.calls=[];let tasks=${input?JSON.stringify([{id:"input-task",input:{task:"Research audience"},status:"awaiting_input"}]):"[]"};const panel=document.querySelector('intergraph-daemons');
+ window.calls=[];let tasks=${input?JSON.stringify([{id:"input-task",input:{task:"## Task\nResearch audience"},status:"awaiting_input"}]):"[]"};const panel=document.querySelector('intergraph-daemons');
  panel.contextProvider=()=>({title:'Reviewed strip',url:location.origin+'/comic',text:'An alternative ending.'});
  panel.transport=async(operation,args)=>{window.calls.push({operation,args});if(operation==='status')return {eligible:true,game_id:'11111111-1111-4111-8111-111111111111',frame_origin:location.origin,default_daemon_id:'${daemon}'};if(operation==='start')return {authorization_url:location.origin+'/connect-game?request=fixture'};
  if(args.operation==='list')return {items:[{id:'${daemon}',connection_id:'${connection}',access_role:'${viewer?'viewer':'operator'}',can_submit:${!viewer},published_revision:1,published_definition:{name:'Test Daemon',instructions:'Only approved test work.'}}]};
