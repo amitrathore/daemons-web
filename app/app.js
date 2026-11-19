@@ -1,3 +1,4 @@
+import {contentView,taskInputView,taskResultView} from './task-content.js';
 import {mountConsent} from './consent.js';
 import {definitionFields,definitionFromForm} from './definition.js';
 import {mountTools} from './tools.js';
@@ -61,12 +62,8 @@ const activityLabels = {
 };
 const readableKey = value => String(value).replaceAll('_', ' ').replaceAll('.', ' ');
 const dateLabel = value => value ? new Date(value).toLocaleString() : 'Not used yet';
-function resultView(value) {
-  if (value === null || value === undefined) return '<span class="muted">No result supplied.</span>';
-  if (Array.isArray(value)) return `<ul>${value.map(item => `<li>${resultView(item)}</li>`).join('')}</ul>`;
-  if (typeof value === 'object') return `<dl class="result-fields">${Object.entries(value).map(([key, item]) => `<dt>${esc(readableKey(key))}</dt><dd>${resultView(item)}</dd>`).join('')}</dl>`;
-  return `<span class="result-text">${esc(value)}</span>`;
-}
+function resultView(value) { return `<div class="task-prose">${contentView(value)}</div>`; }
+
 function instructionsView(spec) {
   return `<div class="instructions"><h3>${esc(spec.name)}</h3><p>${esc(spec.purpose)}</p><h3>Instructions for the assistant</h3><p class="result-text">${esc(spec.instructions)}</p>${spec.required_capabilities.length ? `<p><strong>Required abilities:</strong> ${spec.required_capabilities.map(esc).join(', ')}</p>` : ''}</div>`;
 }
@@ -136,14 +133,6 @@ function nextStep(d, work, connections) {
   }
   return `<section class="panel guidance" aria-label="What to do next"><h2>${title}</h2><p>${description}</p>${action}</section>`;
 }
-// A common assistant response wraps the actual brief in {result, message}.
-// Unwrap that payload once; keep arbitrary structured results intact.
-function taskResultView(value) {
-  if (value && !Array.isArray(value) && typeof value === 'object' && 'result' in value && Object.keys(value).every(k => ['result', 'message'].includes(k))) {
-    return `${resultView(value.result)}${value.message && !['completed', 'complete', 'done', 'succeeded'].includes(String(value.message).trim().toLowerCase()) ? `<p class="helper">${esc(value.message)}</p>` : ''}`;
-  }
-  return resultView(value);
-}
 function activityView(activity) {
   return activity.length ? activity.map(a => `<div class="list-row"><strong>${esc(activityLabels[a.type] || readableKey(a.type))}</strong><div class="meta">${esc(dateLabel(a.created_at))}</div>${a.type === 'work.progress' && a.data?.report ? `<div class="activity-report">${resultView(a.data.report)}</div>` : ''}</div>`).join('') : '<p>No activity yet.</p>';
 }
@@ -159,7 +148,7 @@ function taskView(w) {
     attention_required: 'This attempt can no longer report results. Its assistant may have missed a check-in, its access may have ended, or you may have ended the attempt. Check what happened before trying again.',
   };
   const canRetry = ['failed', 'cancelled', 'attention_required'].includes(w.status);
-  return `<article class="list-row"><div class="toolbar">${status(w.status)}<span class="meta">Instructions v${w.revision}${w.tool_policy_revision!==null&&w.tool_policy_revision!==undefined?` · Tool policy ${w.tool_policy_revision}`:''} · ${w.attempt ? `Attempt ${w.attempt}` : 'Not started'}</span></div><p class="task-title">${esc(w.input.task || JSON.stringify(w.input))}</p>${w.discovered_by_name?`<p class="helper">Suggested by ${esc(w.discovered_by_name)}</p>`:''}${explanations[w.status] ? `<p class="helper">${esc(explanations[w.status])}</p>` : ''}${w.status === 'working' ? `<p class="helper">${esc(checkInText(w))}</p>` : ''}${w.attention_reason === 'owner_ended' ? '<p class="callout">You ended this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p>' : ''}${w.cancel_requested && w.status === 'working' ? '<p class="callout">Stop requested. The assistant must acknowledge it; it may continue working until then.</p>' : ''}${w.result !== null && w.result !== undefined ? `<div class="task-result"><h3>${w.status === 'succeeded' ? 'Result' : 'Assistant’s report'}</h3>${taskResultView(w.result)}</div>` : ''}<p class="helper">Last update: ${esc(dateLabel(w.updated_at))}</p>${canRetry ? '<p class="helper">Before trying again, review any actions already completed. Another attempt may repeat them.</p>' : ''}<div class="actions">${(!activeDaemonRole||can(activeDaemonRole,'operator'))&&['queued', 'working', 'awaiting_input'].includes(w.status) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="cancel">${w.status !== 'working' ? 'Cancel task' : 'Request stop'}</button>` : ''}${w.status === 'working' && (!activeDaemonRole||can(activeDaemonRole,'manager')) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="end-attempt" data-attempt-id="${esc(w.attempt_id)}">End this attempt</button>` : ''}${canRetry&&(!activeDaemonRole||can(activeDaemonRole,'operator')) ? `<button data-work="${esc(w.id)}" data-action="retry">Try task again</button>` : ''}</div>${w.attempt_id ? `<details data-starting="${esc(w.id)}" data-attempt="${esc(w.attempt_id)}"><summary>Starting context</summary><div>Open to read the briefing used for this attempt.</div></details>` : ''}<details><summary>Technical task details</summary><div class="meta">Task ID: ${esc(w.id)}</div><pre>${pretty({input: w.input, attempt_id: w.attempt_id, result: w.result})}</pre></details></article>`;
+  return `<article class="list-row"><div class="toolbar">${status(w.status)}<span class="meta">Instructions v${w.revision}${w.tool_policy_revision!==null&&w.tool_policy_revision!==undefined?` · Tool policy ${w.tool_policy_revision}`:''} · ${w.attempt ? `Attempt ${w.attempt}` : 'Not started'}</span></div><section class="task-assignment"><h3>Assignment</h3><div class="task-title task-prose">${taskInputView(w.input)}</div></section>${w.discovered_by_name?`<p class="helper">Suggested by ${esc(w.discovered_by_name)}</p>`:''}${explanations[w.status] ? `<p class="helper">${esc(explanations[w.status])}</p>` : ''}${w.status === 'working' ? `<p class="helper">${esc(checkInText(w))}</p>` : ''}${w.attention_reason === 'owner_ended' ? '<p class="callout">You ended this attempt. The assistant may still be working outside Daemons.ai. Review what happened before trying again.</p>' : ''}${w.cancel_requested && w.status === 'working' ? '<p class="callout">Stop requested. The assistant must acknowledge it; it may continue working until then.</p>' : ''}${w.result !== null && w.result !== undefined ? `<div class="task-result"><h3>${w.status === 'succeeded' ? 'Result' : 'Assistant’s report'}</h3><div class="task-prose">${taskResultView(w.result)}</div></div>` : ''}<p class="helper">Last update: ${esc(dateLabel(w.updated_at))}</p>${canRetry ? '<p class="helper">Before trying again, review any actions already completed. Another attempt may repeat them.</p>' : ''}<div class="actions">${(!activeDaemonRole||can(activeDaemonRole,'operator'))&&['queued', 'working', 'awaiting_input'].includes(w.status) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="cancel">${w.status !== 'working' ? 'Cancel task' : 'Request stop'}</button>` : ''}${w.status === 'working' && (!activeDaemonRole||can(activeDaemonRole,'manager')) ? `<button class="secondary" data-work="${esc(w.id)}" data-action="end-attempt" data-attempt-id="${esc(w.attempt_id)}">End this attempt</button>` : ''}${canRetry&&(!activeDaemonRole||can(activeDaemonRole,'operator')) ? `<button data-work="${esc(w.id)}" data-action="retry">Try task again</button>` : ''}</div>${w.attempt_id ? `<details data-starting="${esc(w.id)}" data-attempt="${esc(w.attempt_id)}"><summary>Starting context</summary><div>Open to read the briefing used for this attempt.</div></details>` : ''}<details><summary>Technical task details</summary><div class="meta">Task ID: ${esc(w.id)}</div><pre>${pretty({input: w.input, attempt_id: w.attempt_id, result: w.result})}</pre></details></article>`;
 }
 async function daemon(id) {
   disposeBoard();

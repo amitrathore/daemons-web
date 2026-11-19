@@ -24,7 +24,7 @@ async function fixture(page){
   else throw Error(path);
   await route.fulfill({json:result});
  });
- return {get retries(){return retries;},needsReview:()=>{work.find(w=>w.id==='w3').status='attention_required';},get boards(){return boards;},get reads(){return reads;},conflict:()=>conflict=true,fail:()=>fail=true,complete:()=>{work.find(w=>w.id==='w3').status='succeeded';work.find(w=>w.id==='w3').updated_at='2026-10-28T11:00:00Z';work.find(w=>w.id==='w3').result={result:'Shortlist evaluation completed'};}};
+ return {setWork:items=>work=items,get retries(){return retries;},needsReview:()=>{work.find(w=>w.id==='w3').status='attention_required';},get boards(){return boards;},get reads(){return reads;},conflict:()=>conflict=true,fail:()=>fail=true,complete:()=>{work.find(w=>w.id==='w3').status='succeeded';work.find(w=>w.id==='w3').updated_at='2026-10-28T11:00:00Z';work.find(w=>w.id==='w3').result={result:'Shortlist evaluation completed'};}};
 }
 test('native board has collapsed results, progress, queue controls and usable mobile layout',async({page})=>{
  const state=await fixture(page);await page.goto(`/daemons/${id}`);
@@ -39,6 +39,22 @@ test('native board has collapsed results, progress, queue controls and usable mo
  await page.screenshot({path:'test-results/taskboard-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'test-results/taskboard-mobile.png',fullPage:true});
+});
+
+test('structured task assignments read as sections and lists, with raw data only in technical details',async({page})=>{
+ const state=await fixture(page),assignment={objective:'Find three San Mateo makers',steps:['Check their recent work','Find a relevant collection'],acceptance_criteria:['Include sources','Explain the cultural fit'],source_url:'https://example.test/makers'};
+ state.setWork([{id:'readable',status:'queued',revision:1,input:{title:'Research local makers',task:JSON.stringify(assignment),context_work_ids:['internal-context-id']},updated_at:'2026-11-19'}]);
+ await page.goto(`/daemons/${id}`);await page.locator('[data-card="readable"] > summary').click();const body=page.locator('.task-assignment');
+ await expect(body.getByRole('heading',{name:'Assignment',exact:true})).toBeVisible();await expect(body.getByText('Acceptance criteria',{exact:true})).toBeVisible();await expect(body.getByRole('listitem').filter({hasText:'Check their recent work'})).toBeVisible();await expect(body.getByRole('link',{name:'https://example.test/makers'})).toHaveAttribute('href','https://example.test/makers');await expect(body).not.toContainText('internal-context-id');await expect(body).not.toContainText('acceptance_criteria');
+ const raw=page.getByRole('dialog').locator('details').filter({has:page.getByText('Technical task details',{exact:true})});await expect(raw).not.toHaveAttribute('open','');await raw.locator('summary').click();await expect(raw.locator('pre')).toContainText('acceptance_criteria');
+});
+
+test('reports render Markdown and encoded JSON safely on desktop and mobile',async({page})=>{
+ const state=await fixture(page),report={summary:'## Maker research\n\nThree local makers are ready for review.\n\n- **Ceramics**: a small collection\n- Photography: a local series\n\n[View source](https://example.test/research)\n\n<img src=x onerror=alert(1)>\n\n[Unsafe](javascript:alert)',next_steps:['Confirm availability','Prepare a feature draft'],requires_approval:true};
+ state.setWork([{id:'report',status:'succeeded',revision:1,input:{task:'Research local makers'},result:JSON.stringify({result:report,message:'Completed'}),updated_at:'2026-11-19'}]);
+ await page.goto(`/daemons/${id}`);await page.locator('[data-card="report"] > summary').click();const result=page.locator('.task-result');await expect(result.getByRole('heading',{name:'Maker research'})).toBeVisible();await expect(result.locator('strong').filter({hasText:'Ceramics'})).toBeVisible();await expect(result.getByText('Next steps',{exact:true})).toBeVisible();await expect(result.getByRole('link',{name:'View source'})).toHaveAttribute('href','https://example.test/research');await expect(result.locator('img,script,[href^="javascript:"]')).toHaveCount(0);await expect(result.getByText('Unsafe',{exact:true})).toBeVisible();await expect(result).not.toContainText('next_steps');
+ await page.getByRole('dialog').screenshot({path:'test-results/readable-task-desktop.png'});
+ await page.setViewportSize({width:390,height:844});expect(await page.getByRole('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);await page.getByRole('dialog').screenshot({path:'test-results/readable-task-mobile.png'});
 });
 test('polling preserves drafts and expanded cards as work completes; errors retain the last board',async({page})=>{
  await page.clock.install();const state=await fixture(page);await page.goto(`/daemons/${id}`);
