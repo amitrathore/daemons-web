@@ -38,7 +38,7 @@ export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,
             if(modal)dialog.showModal();
           }
         }card.dataset.updated=w.updated_at;card.dataset.attempt=w.attempt_id||'';card.dataset.discoveredBy=w.discovered_by_name||'';
-        card.querySelector('.board-card-title').textContent=w.title||'Task';
+        card.querySelector('.board-card-title').textContent=w.title||'Untitled task';
         card.querySelector('.board-card-status').textContent=`${col==='queued'?`#${w.queue_position} · `:''}${status[w.status]||w.status}${w.cancel_requested&&w.status==='working'?' · Stop requested':''}`;
         card.querySelector('.board-card-meta').textContent=`${w.assistant?`${w.assistant} · `:''}${w.updated_at?relative(w.updated_at):''}`;
         card.querySelector('.board-card-check-in').textContent=checkInText(w);
