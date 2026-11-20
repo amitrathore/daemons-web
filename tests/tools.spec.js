@@ -3,7 +3,7 @@ import {boardFixture} from './board-fixture.js';
 const id='11111111-1111-4111-8111-111111111111', owner='22222222-2222-4222-8222-222222222222', binding='33333333-3333-4333-8333-333333333333', source='44444444-4444-4444-8444-444444444444', executor='55555555-5555-4555-8555-555555555555';
 async function fixture(page,manager=true){
  const action={binding_id:binding,connection_id:source,name:'drive.read',description:'Read a document <img src=x>',account_label:'Test Drive',fingerprint:'schema',input:{type:'object',properties:{id:{type:'string'}}}};
- const tools={configured:true,can_manage:manager,revision:0,draft:[],published_revision:null,published:[],connections:[{id:binding,status:'active',contributor_id:owner,contributor:'owner@example.test',revision:1,delegation:{audience_mode:'selected',executors:[executor]}}],executors:[{id:executor,name:'Muse',scopes:['work:execute','tools:use']}]};
+ const tools={configured:true,can_manage:manager,revision:0,draft:[],published_revision:null,published:[],connections:[{id:binding,status:'active',contributor_id:owner,contributor:'owner@example.test',toolisman_owner_id:'66666666-6666-4666-8666-666666666666',toolisman_owner_email:'tools@example.test',revision:1,delegation:{audience_mode:'selected',executors:[executor]}}],executors:[{id:executor,name:'Muse',scopes:['work:execute','tools:use']}]};
  const writes=[];
  await page.route('https://api.daemons.ai/v1/**',async route=>{
   const req=route.request(),url=new URL(req.url()),p=url.pathname.slice(4),method=req.method();let data;
@@ -33,6 +33,8 @@ async function fixture(page,manager=true){
 }
 test('manager reviews and publishes specific actions, then removes live access',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Choose actions'}).click();
+ await expect(page.getByText('Connected by owner@example.test',{exact:true})).toBeVisible();
+ await expect(page.getByText('Toolisman account: tools@example.test',{exact:true})).toBeVisible();
  await page.getByRole('checkbox',{name:/Read a document/}).check();
  await expect(page.locator('[data-room-panel="tools"] img')).toHaveCount(0);
  await page.getByRole('button',{name:'Save action choices'}).click();
