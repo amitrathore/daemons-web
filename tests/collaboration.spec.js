@@ -99,3 +99,27 @@ test('expired invitations and duplicate inactive assistants remain distinguishab
  await page.goto(`/daemons/${id}#sharing`);await page.getByText('Expired invitations (1)',{exact:true}).click();const expired=page.getByText('expired@example.test',{exact:true}).locator('..').locator('..');await expect(expired).toContainText('Expired');await expect(expired.getByRole('button')).toHaveCount(0);
  await page.locator('#assistant-access-section > summary').click();await page.getByText('Inactive connections (1)',{exact:true}).click();await expect(page.locator('#assistant-access-section').getByText('Research assistant',{exact:true})).toHaveCount(2);await page.getByRole('button',{name:'View details',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('grant2');await expect(page.getByRole('dialog').getByRole('button',{name:'Save permissions'})).toHaveCount(0);
 });
+
+test('Daemons shared from another person’s workspace appear in your own control room',async({page})=>{
+ const sharer='44444444-4444-4444-8444-444444444444',shared='55555555-5555-4555-8555-555555555555';
+ const sharedDefinition={...definition,name:'Counsel drafts',purpose:'Prepare agreements for review'};
+ await page.route('https://api.daemons.ai/v1/**',route=>{
+  const url=new URL(route.request().url()),path=url.pathname.slice(4),workspace=url.searchParams.get('workspace_id');let result=[];
+  if(path==='session')result={account:{id:user,email:'colleague@example.test'},csrf:'csrf',collaboration_enabled:true};
+  else if(path==='workspaces')result={items:[{id:user,name:'Personal',kind:'personal',role:'owner'},{id:sharer,name:'Personal',kind:'personal',role:'guest',owner_email:'sharer@example.test'}]};
+  else if(path==='control-room')result=workspace===sharer?[{id:shared,display_definition:sharedDefinition,workspace_id:sharer,access_role:'operator',published_revision:1}]:[];
+  return route.fulfill({json:result});
+ });
+ await page.goto('/');
+ await expect(page.getByLabel('Workspace',{exact:true}).locator('option',{hasText:'sharer@example.test (shared with you)'})).toHaveCount(1);
+ const section=page.getByRole('region',{name:'Shared with you'});
+ await expect(section.getByRole('heading',{name:'sharer@example.test (shared with you)'})).toBeVisible();
+ await expect(section.getByText('Operator',{exact:true})).toBeVisible();
+ await expect(section.getByRole('link',{name:'Counsel drafts'})).toHaveAttribute('href',`/daemons/${shared}`);
+});
+
+test('the shared section stays out of other workspaces',async({page})=>{
+ await fixture(page);await page.goto('/');await page.getByLabel('Workspace',{exact:true}).selectOption(org);
+ await expect(page.getByRole('heading',{name:'Shared research'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Shared with you'})).toHaveCount(0);
+});

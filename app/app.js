@@ -3,7 +3,7 @@ import {mountConsent} from './consent.js';
 import {definitionFields,definitionFromForm} from './definition.js';
 import {mountTools} from './tools.js';
 import {gameConnections} from './game-connections.js';
-import {workspacePicker,workspacePage,invitationPage,mountSharing,can} from './collaboration.js';
+import {workspacePicker,workspaceLabel,workspacePage,invitationPage,mountSharing,can} from './collaboration.js';
 import {checkInText} from './execution.js';
 import {mountConnections} from './connections.js';
 import {avatar,defaults} from './identity.js';
@@ -71,11 +71,22 @@ function gettingStarted() {
   return `<section class="panel guidance" aria-labelledby="how-it-works"><h2 id="how-it-works">How Daemons.ai works</h2><p>A Daemon keeps a thread of responsibility together: purpose, memory, tasks, and results. Your connected assistants carry out the work.</p><ol class="steps"><li><strong>Describe your Daemon</strong><span>Give it a purpose and instructions it can reuse.</span></li><li><strong>Publish its instructions</strong><span>Choose the saved version that new tasks will use.</span></li><li><strong>Connect an assistant</strong><span>Give an assistant you already use permission to work on its behalf.</span></li><li><strong>Add a task</strong><span>The assistant picks it up and sends progress and results back here.</span></li></ol><p class="helper">For example: “Research assistant” is a Daemon. “Prepare a brief on Acme by Friday” is one task for it.</p></section>`;
 }
 const canCreateHere=()=>!session?.collaboration_enabled||['owner','admin','member'].includes(workspaces.find(w=>w.id===currentWorkspace)?.role);
+// Daemons shared from someone else's personal workspace live in that workspace, so surface them from your own.
+async function sharedWithYou(){
+  if(!session?.collaboration_enabled||currentWorkspace!==session.account.id)return;
+  const shared=workspaces.filter(w=>w.kind==='personal'&&w.id!==session.account.id);if(!shared.length)return;
+  const groups=(await Promise.all(shared.map(async w=>({w,daemons:await api('control-room?workspace_id='+encodeURIComponent(w.id)).catch(()=>[])})))).filter(g=>g.daemons.length);
+  if(!groups.length)return;
+  const section=document.createElement('section');section.className='shared-with-you';section.setAttribute('aria-labelledby','shared-with-you-heading');
+  section.innerHTML=`<h2 id="shared-with-you-heading">Shared with you</h2>${groups.map(({w,daemons})=>`<h3>${esc(workspaceLabel(w,session))}</h3><div class="grid daemon-grid">${daemons.map(d=>`<article class="card daemon-card"><div class="card-top">${avatar(d.appearance||defaults(d.id))}<span class="badge">${esc((d.access_role||"viewer").replace(/^./,c=>c.toUpperCase()))}</span></div><h2><a href="/daemons/${esc(d.id)}">${esc(d.display_definition?.name||d.draft?.name||'Daemon')}</a></h2><p class="card-purpose">${esc(d.display_definition?.purpose||d.draft?.purpose||'')}</p></article>`).join('')}</div>`).join('')}`;
+  main.append(section);
+}
 async function home() {
   disposeBoard();
   main.innerHTML='<p role="status">Loading your Daemons…</p>';
   const daemons = await api('control-room');
   main.innerHTML = `<div class="toolbar room-heading"><div><div class="eyebrow">Your control room</div><h1>Your Daemons<span class="heading-dot">.</span></h1><p>Big ideas. Clear next steps. Work that keeps moving.</p></div>${canCreateHere()?'<a class="button" href="/new">+ Create a Daemon</a>':''}</div>${daemons.length?`<div class="room-tools"><label class="search-box">Search Daemons<input id="daemon-search" type="search" placeholder="Find a Daemon…"></label><details class="onboarding"><summary>Getting started</summary>${gettingStarted()}</details></div><div class="grid daemon-grid" id="daemon-grid"></div><p id="no-matches" hidden>No Daemons match your search.</p>`:`<div class="empty"><img class="empty-familiar" src="/assets/soul-familiar-v2.png" alt="" width="120" height="120"><h2>Your first Daemon starts with a purpose.</h2><p>Give a thread of responsibility a home. Then connect an assistant and add its first task.</p>${canCreateHere()?'<a href="/new" class="button">Create a Daemon</a>':'<p>Daemons shared with you will appear here. Ask an Org member to create one.</p>'}</div>`}`;
+  await sharedWithYou();
   if(!daemons.length)return;
   const priority=d=>d.work_summary?.counts?.approval?0:d.work_summary?.counts?.attention?1:d.work_summary?.counts?.working?2:d.work_summary?.counts?.queued?3:4;
   daemons.sort((a,b)=>priority(a)-priority(b)||a.draft.name.localeCompare(b.draft.name));
