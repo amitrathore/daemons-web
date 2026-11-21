@@ -1,4 +1,5 @@
 import {taskInputView,taskResultView} from '../task-content.js';
+import {idlePoll} from '../idle-poll.js';
 const params=new URLSearchParams(location.search),parentOrigin=params.get('parent_origin'),nonce=params.get('nonce');
 const allowed=new Set(['list','read','tasks','task','submit','disconnect','connect','context','close']);
 let sequence=0,selected=null,rows=[],context=null,key=crypto.randomUUID(),timer,pending=new Map(),busy=false,detailGeneration=0;
@@ -23,7 +24,7 @@ $('task').oninput=()=>{key=crypto.randomUUID();};
 $('compose').onsubmit=event=>{event.preventDefault();safe(async()=>{if(!selected)return;busy=true;$('submit').disabled=true;try{await call('submit',{...resource(),input:{task:$('task').value,...(context?{context}:{})},idempotency_key:key});$('task').value='';context=null;$('context').hidden=true;key=crypto.randomUUID();status('Task queued. An authorized assistant can pick it up.');}finally{busy=false;$('submit').disabled=false;}await refreshTasks();});};
 $('close').onclick=()=>safe(()=>call('close'));
 if(params.get('theme')==='dark')document.documentElement.dataset.theme='dark';
-if(valid()){safe(load);timer=setInterval(()=>safe(refreshTasks),15000);}else status('Open this panel from a participating app or website.');
-window.addEventListener('pagehide',()=>{clearInterval(timer);for(const request of pending.values())clearTimeout(request.timeout);pending.clear();});
+if(valid()){safe(load);timer=idlePoll(document.body,()=>safe(refreshTasks));}else status('Open this panel from a participating app or website.');
+window.addEventListener('pagehide',()=>{timer?.();for(const request of pending.values())clearTimeout(request.timeout);pending.clear();});
 
 window.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();safe(()=>call('close'));}});

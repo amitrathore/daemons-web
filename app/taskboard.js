@@ -1,4 +1,5 @@
 import {checkInText} from './execution.js';
+import {idlePoll} from './idle-poll.js';
 const relative=value=>{const m=Math.max(0,Math.floor((Date.now()-new Date(value))/60000));return m<1?'Just now':m<60?m+'m ago':m<1440?Math.floor(m/60)+'h ago':Math.floor(m/1440)+'d ago';};
 // TaskBoard Protocol client. Poll only the board; preserve the surrounding editor state.
 let cleanup=()=>{};
@@ -50,7 +51,7 @@ export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,
     // Cards that changed columns keep their detail state, regardless of processing order.
     for(const card of grid.querySelectorAll('[data-card-id]'))if(!Object.values(board.columns).some(c=>c.items.some(w=>w.id===card.dataset.cardId))){const dialog=card.querySelector('dialog');if(dialog?.open)dialog.close();card.remove();}
     if(focus){const card=grid.querySelector(`[data-card-id="${focus.id}"]`);const target=focus.move?card?.querySelector(`[data-move="${focus.move}"]`):focus.action?card?.querySelector(`[data-action="${focus.action}"]`):focus.summary?card?.querySelector('summary'):null;target?.focus({preventScroll:true});}
-    document.querySelector('#board-updated').textContent=`Last refreshed ${new Date().toLocaleTimeString()} · Updates every 15 seconds while this page is visible.${board.paused?' New task starts are paused.':''}`;
+    document.querySelector('#board-updated').textContent=`Last refreshed ${new Date().toLocaleTimeString()} · Updates every 15 seconds while you’re active. Use Refresh tasks any time.${board.paused?' New task starts are paused.':''}`;
     onUpdate?.(board);
     window.scrollTo({top:scroll,behavior:'instant'});
   }
@@ -139,9 +140,8 @@ export function mountBoard({canOperate=true,canManage=false,id,initial,api,post,
   }));
   root.addEventListener('close',e=>{if(e.target.matches('.task-drawer')){if(movingDialogs.delete(e.target))return;const details=e.target.closest('details');details.open=false;details.querySelector('summary').focus();}},true);
   root.addEventListener('click',e=>{if(e.target.matches('.task-drawer')){const b=e.target.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)e.target.close();}});
-  const visibility=()=>{if(!document.hidden)refresh();};document.addEventListener('visibilitychange',visibility);
-  const timer=setInterval(()=>{if(!document.hidden)refresh();},15000);
-  cleanup=()=>{dead=true;clearInterval(timer);document.removeEventListener('visibilitychange',visibility);};
+  const stopPolling=idlePoll(root,()=>refresh());
+  cleanup=()=>{dead=true;stopPolling();};
   reconcile(initial);
   return {refresh};
 }

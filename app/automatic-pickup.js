@@ -1,4 +1,5 @@
 import {connectionTitle} from './connection-identity.js';
+import {idlePoll} from './idle-poll.js';
 // Owner settings only. This module never claims or executes a task.
 export function mountAutomaticPickup({root,id,connectionId,api,notify,esc}) {
   let busy=false,loading=false,last='',timer;
@@ -11,7 +12,7 @@ export function mountAutomaticPickup({root,id,connectionId,api,notify,esc}) {
     if(html!==last){root.innerHTML=html;last=html;}
   }
   async function refresh(force=false){
-    if(!root.isConnected){clearInterval(timer);return;}
+    if(!root.isConnected){timer?.();return;}
     if(busy||loading||(!force&&(document.hidden||root.contains(document.activeElement))))return;
     loading=true;
     try{const data=await api(path);if(root.isConnected)render(data);}catch(e){if(!last)root.innerHTML='<p>Pickup settings could not be loaded.</p><button type="button" class="secondary" data-auto-refresh>Try again</button>';if(force)notify(e.message);}finally{loading=false;}
@@ -24,6 +25,6 @@ export function mountAutomaticPickup({root,id,connectionId,api,notify,esc}) {
     finally{busy=false;input.disabled=false;await refresh(true);}
   });
   root.addEventListener('click',e=>{if(e.target.closest('[data-auto-refresh]'))refresh(true);});
-  timer=setInterval(()=>refresh(),15000);refresh(true);
+  timer=idlePoll(root,()=>refresh());refresh(true);
   return {refresh};
 }
